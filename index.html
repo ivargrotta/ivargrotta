@@ -38,41 +38,19 @@
 
   <!-- Header -->
   <header class="header">
-    <a href="#top" class="logo magnetic" data-cursor="Topp" aria-label="ivar. — til toppen">
+    <a href="#" class="logo magnetic" data-close-panel data-cursor="Hjem" aria-label="ivar. — til forsiden">
       <span class="wordmark" aria-hidden="true">ıvar<i class="wm-dot wm-dot--a"></i><i class="wm-dot wm-dot--b"></i></span>
     </a>
     <div class="header__status"><span class="pulse"></span> Tilgjengelig for nye prosjekter</div>
-    <button class="menu-btn magnetic" id="menuBtn" aria-expanded="false" aria-controls="menu" data-cursor="Åpne">
-      <span class="menu-btn__text"><span>Meny</span><span>Lukk</span></span>
-      <span class="menu-btn__icon"><i></i><i></i></span>
-    </button>
+    <nav class="nav" aria-label="Hovedmeny">
+      <button class="nav__link magnetic" data-panel="arbeid" aria-controls="arbeid" aria-expanded="false"><i class="nav__dot nav__dot--a"></i>Arbeid</button>
+      <button class="nav__link magnetic" data-panel="kontakt" aria-controls="kontakt" aria-expanded="false"><i class="nav__dot nav__dot--b"></i>Kontakt</button>
+      <button class="nav__close magnetic" data-close-panel aria-label="Lukk" data-cursor="Lukk"><i></i><i></i></button>
+    </nav>
   </header>
 
-  <!-- Fullscreen menu -->
-  <nav class="menu" id="menu" aria-hidden="true">
-    <canvas class="menu__canvas" id="menuCanvas"></canvas>
-    <div class="menu__inner">
-      <ul class="menu__links">
-        <li><a href="#top" data-text="Hjem"><span class="idx">01</span><span class="txt">Hjem</span></a></li>
-        <li><a href="#arbeid" data-text="Arbeid"><span class="idx">02</span><span class="txt">Arbeid</span></a></li>
-        <li><a href="#om" data-text="Om meg"><span class="idx">03</span><span class="txt">Om meg</span></a></li>
-        <li><a href="#kontakt" data-text="Kontakt"><span class="idx">04</span><span class="txt">Kontakt</span></a></li>
-      </ul>
-      <div class="menu__contact">
-        <p class="eyebrow">Kontakt</p>
-        <a class="menu__phone hover-line" href="tel:+4798832159" data-cursor="Ring">+47 98 83 21 59</a>
-        <a class="menu__social hover-line" href="https://www.linkedin.com/in/ivargrotta/" target="_blank" rel="noopener" data-cursor="Besøk">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h4v11H3v-11zm6.5 0h3.83v1.5h.05c.53-1 1.84-2.05 3.79-2.05 4.05 0 4.8 2.67 4.8 6.14v5.41h-4v-4.8c0-1.15-.02-2.62-1.6-2.62-1.6 0-1.84 1.25-1.84 2.54v4.88h-4v-11z"/></svg>
-          LinkedIn ↗
-        </a>
-        <p class="menu__note">Svarer som regel innen 24 timer.</p>
-      </div>
-    </div>
-  </nav>
-
-  <main id="top">
-
-    <!-- HERO -->
+  <main>
+    <!-- The landing: one screen, no scroll. Just the two dots becoming "ivar." -->
     <section class="hero">
       <canvas id="heroCanvas" class="hero__canvas" aria-hidden="true"></canvas>
       <h1 class="sr-only">ivar. — Ivar Grøtta</h1>
@@ -92,51 +70,20 @@
         <p class="hero__lead split" data-split>
           Jeg skaper digitale opplevelser som føles levende — der idé, design og bevegelse møtes.
         </p>
-        <a href="#arbeid" class="scroll-cue magnetic" data-cursor="Scroll">
-          <span class="scroll-cue__ring">
-            <svg viewBox="0 0 100 100"><defs><path id="circ" d="M50,50 m-37,0 a37,37 0 1,1 74,0 a37,37 0 1,1 -74,0"/></defs>
-              <text><textPath href="#circ" textLength="230" lengthAdjust="spacing">SCROLL NED • UTFORSK • SCROLL NED • UTFORSK • </textPath></text></svg>
-          </span>
-          <span class="scroll-cue__arrow">↓</span>
-        </a>
+        <p class="hero__clock reveal-up"><span class="eyebrow">Norge</span><span id="clock">—:—</span></p>
       </div>
       <p class="hero__hint">Beveg musen over prikkene — klikk for en overraskelse</p>
     </section>
+  </main>
 
-    <!-- MARQUEE -->
-    <section class="marquee" aria-hidden="true">
-      <div class="marquee__row" data-speed="1">
-        <div class="marquee__track">
-          <span>Design</span><em class="dd"><i></i><i></i></em><span class="outline">Motion</span><em class="dd"><i></i><i></i></em><span>Strategi</span><em class="dd"><i></i><i></i></em><span class="outline">Interaksjon</span><em class="dd"><i></i><i></i></em><span>Merkevare</span><em class="dd"><i></i><i></i></em><span class="outline">Idé</span><em class="dd"><i></i><i></i></em>
+  <!-- Room 1: Arbeid (light, slides up) -->
+  <section class="panel panel--work" id="arbeid" aria-hidden="true" aria-label="Arbeid">
+    <div class="panel__scroll">
+      <div class="work">
+        <div class="section-head">
+          <p class="eyebrow reveal-up">(Utvalgt arbeid)</p>
+          <h2 class="section-title split" data-split data-dot>Prosjekter som beveger</h2>
         </div>
-      </div>
-      <div class="marquee__row marquee__row--rev" data-speed="-1">
-        <div class="marquee__track">
-          <span class="outline">Kreativitet</span><em class="dd"><i></i><i></i></em><span>Teknologi</span><em class="dd"><i></i><i></i></em><span class="outline">Historiefortelling</span><em class="dd"><i></i><i></i></em><span>Opplevelser</span><em class="dd"><i></i><i></i></em>
-        </div>
-      </div>
-    </section>
-
-    <!-- STATEMENT -->
-    <section class="statement" id="om">
-      <p class="eyebrow reveal-up">(Om meg)</p>
-      <p class="statement__text" id="statement">
-        Jeg heter Ivar Grøtta. Jeg tror de beste digitale produktene ikke bare fungerer — de gir deg en følelse. Med nysgjerrighet, presisjon og en god dose lek bygger jeg opplevelser folk husker.
-      </p>
-      <div class="stats">
-        <div class="stat reveal-up"><span class="stat__num" data-count="10">0</span><span class="stat__plus">+</span><p>År med erfaring</p></div>
-        <div class="stat reveal-up"><span class="stat__num" data-count="120">0</span><span class="stat__plus">+</span><p>Prosjekter levert</p></div>
-        <div class="stat reveal-up"><span class="stat__num" data-count="100">0</span><span class="stat__plus">%</span><p>Engasjement</p></div>
-      </div>
-    </section>
-
-    <!-- WORK -->
-    <section class="work" id="arbeid">
-      <div class="section-head">
-        <p class="eyebrow reveal-up">(Utvalgt arbeid)</p>
-        <h2 class="section-title split" data-split data-dot>Prosjekter som beveger</h2>
-      </div>
-
       <div class="work__grid">
         <article class="card tilt" data-cursor="Se" style="--c1:#22406b;--c2:#6e8ba8;--c3:#15171b;--cbg:#e6ecf1">
           <div class="card__media"><canvas class="card__art" data-art="waves"></canvas><div class="card__glare"></div></div>
@@ -155,52 +102,64 @@
           <div class="card__info"><span class="card__idx">04</span><h3>Horisont</h3><p>Motion &amp; film</p><span class="card__year">2024</span></div>
         </article>
       </div>
-    </section>
-
-    <!-- CAPABILITIES -->
-    <section class="caps">
-      <div class="section-head">
-        <p class="eyebrow reveal-up">(Hva jeg gjør)</p>
-        <h2 class="section-title split" data-split data-dot>Kompetanse</h2>
       </div>
+
+      <div class="caps">
+        <div class="section-head">
+          <p class="eyebrow reveal-up">(Hva jeg gjør)</p>
+          <h2 class="section-title split" data-split data-dot>Kompetanse</h2>
+        </div>
       <ul class="caps__list">
         <li class="cap" data-color="#22406b"><span class="cap__idx">01</span><span class="cap__title" data-text="Kreativ retning">Kreativ retning</span><span class="cap__desc">Konsept, idé og helhet</span><span class="cap__arrow">→</span></li>
         <li class="cap" data-color="#6e8ba8"><span class="cap__idx">02</span><span class="cap__title" data-text="Digital design">Digital design</span><span class="cap__desc">Nettsider, apper og produkter</span><span class="cap__arrow">→</span></li>
         <li class="cap" data-color="#b8352f"><span class="cap__idx">03</span><span class="cap__title" data-text="Motion">Motion</span><span class="cap__desc">Animasjon og mikrointeraksjoner</span><span class="cap__arrow">→</span></li>
         <li class="cap" data-color="#4f6b5a"><span class="cap__idx">04</span><span class="cap__title" data-text="Strategi">Strategi</span><span class="cap__desc">Merkevare og vekst</span><span class="cap__arrow">→</span></li>
       </ul>
-      <div class="cap-preview" aria-hidden="true"><div class="cap-preview__inner"></div></div>
-    </section>
-
-    <!-- CONTACT -->
-    <section class="contact" id="kontakt">
-      <p class="eyebrow reveal-up">(Kontakt)</p>
-      <h2 class="contact__title">
-        <span class="line"><span class="split" data-split>Har du en idé?</span></span>
-        <span class="line"><span class="gradient-text split" data-split data-dot>La oss snakke</span></span>
-      </h2>
-      <div class="contact__actions">
-        <a href="tel:+4798832159" class="pill magnetic" data-cursor="Ring">
-          <span class="pill__fill"></span>
-          <span class="pill__label">+47 98 83 21 59</span>
-        </a>
-        <a href="https://www.linkedin.com/in/ivargrotta/" target="_blank" rel="noopener" class="pill pill--ghost magnetic" data-cursor="Besøk">
-          <span class="pill__fill"></span>
-          <span class="pill__label">LinkedIn ↗</span>
-        </a>
-        <button class="pill pill--ghost magnetic" data-open-menu data-cursor="Åpne">
-          <span class="pill__fill"></span>
-          <span class="pill__label">Åpne meny</span>
-        </button>
       </div>
-    </section>
-  </main>
 
-  <footer class="footer">
-    <span>© 2026 <span class="wordmark wordmark--sm" aria-label="ivar.">ıvar<i class="wm-dot wm-dot--a"></i><i class="wm-dot wm-dot--b"></i></span> — Ivar Grøtta</span>
-    <span class="footer__clock" id="clock">Norge —:—</span>
-    <a href="#top" class="hover-line" data-cursor="Topp">Til toppen ↑</a>
-  </footer>
+      <div class="panel__end">
+        <p class="panel__end-text split" data-split data-dot>Noe du vil lage sammen</p>
+        <button class="pill magnetic" data-panel="kontakt" data-cursor="Åpne"><span class="pill__fill"></span><span class="pill__label">Ta kontakt</span></button>
+      </div>
+      <footer class="footer">
+        <span>© 2026 <span class="wordmark wordmark--sm" aria-label="ivar.">ıvar<i class="wm-dot wm-dot--a"></i><i class="wm-dot wm-dot--b"></i></span> — Ivar Grøtta</span>
+        <button class="hover-line" data-close-panel data-cursor="Hjem">Tilbake til forsiden</button>
+      </footer>
+    </div>
+  </section>
+  <div class="cap-preview" aria-hidden="true"><div class="cap-preview__inner"></div></div>
+
+  <!-- Room 2: Kontakt (the dark room, opens as a circle from the button) -->
+  <section class="panel panel--contact" id="kontakt" aria-hidden="true" aria-label="Kontakt">
+    <canvas class="panel__canvas" id="menuCanvas"></canvas>
+    <div class="panel__scroll">
+      <div class="contact">
+        <p class="eyebrow">(Kontakt)</p>
+        <h2 class="contact__title">
+          <span class="line"><span class="split" data-split>Har du en idé?</span></span>
+          <span class="line"><span class="accent-text split" data-split data-dot>La oss snakke</span></span>
+        </h2>
+        <div class="contact__grid">
+          <div class="contact__block">
+            <p class="eyebrow">Telefon</p>
+            <a class="contact__big hover-line" href="tel:+4798832159" data-cursor="Ring">+47 98 83 21 59</a>
+          </div>
+          <div class="contact__block">
+            <p class="eyebrow">LinkedIn</p>
+            <a class="contact__big contact__social hover-line" href="https://www.linkedin.com/in/ivargrotta/" target="_blank" rel="noopener" data-cursor="Besøk">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h4v11H3v-11zm6.5 0h3.83v1.5h.05c.53-1 1.84-2.05 3.79-2.05 4.05 0 4.8 2.67 4.8 6.14v5.41h-4v-4.8c0-1.15-.02-2.62-1.6-2.62-1.6 0-1.84 1.25-1.84 2.54v4.88h-4v-11z"/></svg>
+              ivargrotta ↗
+            </a>
+          </div>
+          <div class="contact__block contact__about">
+            <p class="eyebrow">Om meg</p>
+            <p>Jeg heter Ivar Grøtta. Jeg tror de beste digitale produktene ikke bare fungerer, de gir deg en følelse. Med nysgjerrighet, presisjon og en god dose lek bygger jeg opplevelser folk husker.</p>
+            <p class="contact__note">Svarer som regel innen 24 timer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <script src="script.js"></script>
 </body>

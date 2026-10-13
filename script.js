@@ -26,14 +26,6 @@
     if (el.hasAttribute("data-dot")) el.insertAdjacentHTML("beforeend", '<span class="tdot"></span>');
   });
 
-  /* ---------------- Statement: per-word scroll highlight ---------------- */
-  const statement = document.getElementById("statement");
-  const highlight = ["følelse.", "husker.", "lek"];
-  statement.innerHTML = statement.textContent.trim().split(/\s+/)
-    .map((w) => `<span class="word${highlight.includes(w) ? " hl" : ""}">${w}</span>`)
-    .join(" ");
-  const statementWords = [...statement.querySelectorAll(".word")];
-
   /* ---------------- Preloader ---------------- */
   const loader = document.querySelector(".loader");
   const loaderCount = document.getElementById("loaderCount");
@@ -70,6 +62,8 @@
       document.querySelectorAll(".hero .split, .hero .reveal-up").forEach((el) => el.classList.add("is-in"));
     }, 400);
     setTimeout(() => loader.remove(), 1400);
+    const deep = location.hash.slice(1);
+    if (deep === "arbeid" || deep === "kontakt") setTimeout(() => openPanel(deep), 2600);
   }
 
   /* ---------------- Custom cursor ---------------- */
@@ -121,7 +115,7 @@
     const canvas = document.getElementById("heroCanvas");
     const ctx = canvas.getContext("2d");
     let w, h, dpr, particles = [], running = false, started = false, breath = 1.5;
-    let startTime = 0, burst = false, fontSize = 200;
+    let startTime = 0, burst = false, fontSize = 200, paused = false;
     const letterColors = ["#15171b", "#15171b", "#15171b", "#15171b", "#2b2e35", "#3c4a5e"];
     const dotColors = ["#22406b", "#b8352f"];
     const PAIR_GAP = 40, LOADER_R = 11, PAIR_TIME = reduceMotion ? 0 : 1300;
@@ -328,7 +322,7 @@
     }
 
     new IntersectionObserver(([entry]) => {
-      if (!started) return;
+      if (!started || paused) return;
       if (entry.isIntersecting && !running) { running = true; requestAnimationFrame(frame); }
       else if (!entry.isIntersecting) running = false;
     }).observe(canvas);
@@ -346,6 +340,12 @@
     });
 
     return {
+      // stop drawing while a room covers the hero, pick up again when it closes
+      pause() { paused = true; running = false; },
+      resume() {
+        paused = false;
+        if (started && !running) { running = true; requestAnimationFrame(frame); }
+      },
       start() {
         const go = () => {
           build();
@@ -386,27 +386,22 @@
     }, 2200);
   }
 
-  /* ---------------- Reveal on scroll ---------------- */
-  const revealIO = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      e.target.classList.add("is-in");
-      if (e.target.dataset.count) countUp(e.target);
-      revealIO.unobserve(e.target);
-    });
-  }, { threshold: 0.2 });
-  document.querySelectorAll(".split:not(.hero .split), .reveal-up:not(.hero .reveal-up), .card, [data-count]")
-    .forEach((el) => revealIO.observe(el));
-
-  function countUp(el) {
-    const end = +el.dataset.count;
-    const start = performance.now();
-    const dur = 1800;
-    (function step(now) {
-      const t = clamp((now - start) / dur, 0, 1);
-      el.textContent = Math.round((1 - Math.pow(1 - t, 4)) * end);
-      if (t < 1) requestAnimationFrame(step);
-    })(start);
+  /* ---------------- Reveal inside rooms ---------------- */
+  // Each time a room opens its content animates in again, observed within the room's own scroller
+  const roomObservers = new Map();
+  function revealRoom(panel) {
+    const scroller = panel.querySelector(".panel__scroll");
+    const items = panel.querySelectorAll(".split, .reveal-up, .card");
+    items.forEach((el) => el.classList.remove("is-in"));
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add("is-in");
+        io.unobserve(e.target);
+      });
+    }, { root: scroller, threshold: 0.15 });
+    setTimeout(() => items.forEach((el) => io.observe(el)), reduceMotion ? 0 : 380);
+    roomObservers.set(panel, io);
   }
 
   /* ---------------- Card tilt ---------------- */
@@ -542,24 +537,64 @@
     cap.addEventListener("pointerleave", () => capPreview.classList.remove("is-on"));
   });
 
-  /* ---------------- Menu ---------------- */
-  const menuBtn = document.getElementById("menuBtn");
-  const menu = document.getElementById("menu");
-  function setMenu(open) {
-    const r = menuBtn.getBoundingClientRect();
-    menu.style.setProperty("--mx", `${r.left + r.width / 2}px`);
-    menu.style.setProperty("--my", `${r.top + r.height / 2}px`);
-    document.body.classList.toggle("menu-open", open);
-    menuBtn.setAttribute("aria-expanded", String(open));
-    menu.setAttribute("aria-hidden", String(!open));
-    menuBtn.dataset.cursor = open ? "Lukk" : "Åpne";
-    if (finePointer) label.textContent = menuBtn.dataset.cursor;
-    if (open) menuArt.start(); else setTimeout(menuArt.stop, 1000);
+  /* ---------------- Rooms: Arbeid & Kontakt ---------------- */
+  const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt") };
+  const navLinks = [...document.querySelectorAll(".nav__link")];
+  let openRoom = null;
+
+  function openPanel(name, origin) {
+    const panel = panels[name];
+    if (!panel || openRoom === name) return;
+    if (openRoom) closePanel(true);
+    if (origin && name === "kontakt") {
+      const r = origin.getBoundingClientRect();
+      panel.style.setProperty("--mx", `${r.left + r.width / 2}px`);
+      panel.style.setProperty("--my", `${r.top + r.height / 2}px`);
+    }
+    openRoom = name;
+    panel.classList.add("is-open");
+    panel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("panel-open");
+    document.body.classList.toggle("panel-dark", name === "kontakt");
+    navLinks.forEach((l) => l.setAttribute("aria-expanded", String(l.dataset.panel === name)));
+    revealRoom(panel);
+    if (name === "kontakt") menuArt.start();
+    // the hero keeps playing under the opening animation, then rests
+    setTimeout(() => { if (openRoom) hero.pause(); }, 1000);
+    if (history.replaceState) history.replaceState(null, "", "#" + name);
   }
-  menuBtn.addEventListener("click", () => setMenu(!document.body.classList.contains("menu-open")));
-  document.querySelectorAll("[data-open-menu]").forEach((b) => b.addEventListener("click", () => setMenu(true)));
-  menu.querySelectorAll("a[href^='#']").forEach((a) => a.addEventListener("click", () => setMenu(false)));
-  addEventListener("keydown", (e) => { if (e.key === "Escape") setMenu(false); });
+
+  function closePanel(switching) {
+    if (!openRoom) return;
+    const panel = panels[openRoom];
+    const wasContact = openRoom === "kontakt";
+    panel.classList.remove("is-open");
+    panel.setAttribute("aria-hidden", "true");
+    roomObservers.get(panel)?.disconnect();
+    capPreview.classList.remove("is-on");
+    openRoom = null;
+    setTimeout(() => {
+      if (!panel.classList.contains("is-open")) panel.querySelector(".panel__scroll").scrollTop = 0;
+      if (wasContact) menuArt.stop();
+    }, 1000);
+    if (switching) return;
+    document.body.classList.remove("panel-open", "panel-dark");
+    navLinks.forEach((l) => l.setAttribute("aria-expanded", "false"));
+    hero.resume();
+    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  document.querySelectorAll("[data-panel]").forEach((b) => b.addEventListener("click", (e) => {
+    e.preventDefault();
+    const name = b.dataset.panel;
+    if (openRoom === name && b.classList.contains("nav__link")) closePanel();
+    else openPanel(name, b);
+  }));
+  document.querySelectorAll("[data-close-panel]").forEach((b) => b.addEventListener("click", (e) => {
+    e.preventDefault();
+    closePanel();
+  }));
+  addEventListener("keydown", (e) => { if (e.key === "Escape") closePanel(); });
 
   // Flowing lines in the menu background
   const menuArt = (() => {
@@ -607,7 +642,7 @@
     addEventListener("resize", () => on && size());
     return {
       start() { if (on || reduceMotion) return; on = true; size(); requestAnimationFrame(draw); },
-      stop() { if (!document.body.classList.contains("menu-open")) on = false; },
+      stop() { if (openRoom !== "kontakt") on = false; },
     };
   })();
 
@@ -615,20 +650,13 @@
   const clock = document.getElementById("clock");
   function updateClock() {
     const time = new Intl.DateTimeFormat("no-NO", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" }).format(new Date());
-    clock.textContent = `Norge ${time}`;
+    clock.textContent = time;
   }
   updateClock();
   setInterval(updateClock, 15000);
 
   /* ---------------- Main loop ---------------- */
-  const marqueeRows = [...document.querySelectorAll(".marquee__row")].map((row) => {
-    const track = row.querySelector(".marquee__track");
-    // duplicate content for a seamless loop
-    for (let i = 0; i < 3; i++) row.appendChild(track.cloneNode(true));
-    return { row, track, dir: +row.dataset.speed, x: 0 };
-  });
-
-  let lastScroll = scrollY, velocity = 0, time = 0;
+  let time = 0;
 
   function loop() {
     time += 0.016;
@@ -648,32 +676,10 @@
       m.el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0)`;
     });
 
-    // scroll velocity
-    const s = scrollY;
-    velocity = lerp(velocity, s - lastScroll, 0.1);
-    lastScroll = s;
-
-    // marquee
-    if (!reduceMotion) {
-      marqueeRows.forEach((m) => {
-        const tw = m.track.offsetWidth;
-        m.x -= (1.2 + Math.abs(velocity) * 0.4) * m.dir * (velocity < -0.5 ? -1 : 1);
-        if (m.x <= -tw) m.x += tw;
-        if (m.x > 0) m.x -= tw;
-        m.row.style.transform = `translate3d(${m.x}px,0,0) skewX(${clamp(-velocity * 0.3, -12, 12)}deg)`;
-      });
-    }
-
-    // statement words
-    const sr = statement.getBoundingClientRect();
-    const p = clamp((innerHeight * 0.85 - sr.top) / (sr.height + innerHeight * 0.35), 0, 1);
-    const lit = Math.floor(p * statementWords.length);
-    statementWords.forEach((wd, i) => wd.classList.toggle("on", i < lit));
-
     // card art
     arts.forEach((a) => {
       a.energy = lerp(a.energy, a.card._hover ? 1 : 0, 0.06);
-      if (a.visible) drawers[a.type](a, time);
+      if (a.visible && openRoom === "arbeid") drawers[a.type](a, time);
     });
 
     // capability preview
