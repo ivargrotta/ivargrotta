@@ -411,7 +411,7 @@
   const roomObservers = new Map();
   function revealRoom(panel) {
     const scroller = panel.querySelector(".panel__scroll");
-    const items = panel.querySelectorAll(".split, .reveal-up, .card");
+    const items = panel.querySelectorAll(".split, .reveal-up");
     items.forEach((el) => el.classList.remove("is-in"));
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
@@ -423,127 +423,6 @@
     setTimeout(() => items.forEach((el) => io.observe(el)), reduceMotion ? 0 : 380);
     roomObservers.set(panel, io);
   }
-
-  /* ---------------- Card tilt ---------------- */
-  document.querySelectorAll(".tilt").forEach((card) => {
-    const media = card.querySelector(".card__media");
-    card.addEventListener("pointermove", (e) => {
-      const r = media.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top) / r.height;
-      card.style.setProperty("--ry", `${(px - 0.5) * 14}deg`);
-      card.style.setProperty("--rx", `${(0.5 - py) * 14}deg`);
-      card.style.setProperty("--gx", `${px * 100}%`);
-      card.style.setProperty("--gy", `${py * 100}%`);
-      card._mx = px; card._my = py;
-    });
-    card.addEventListener("pointerenter", () => { card._hover = true; });
-    card.addEventListener("pointerleave", () => {
-      card._hover = false;
-      card.style.setProperty("--rx", "0deg");
-      card.style.setProperty("--ry", "0deg");
-    });
-  });
-
-  /* ---------------- Generative card art ---------------- */
-  const arts = [...document.querySelectorAll(".card__art")].map((canvas) => {
-    const card = canvas.closest(".card");
-    const cs = getComputedStyle(card);
-    const colors = ["--c1", "--c2", "--c3"].map((v) => cs.getPropertyValue(v).trim());
-    const bg = cs.getPropertyValue("--cbg").trim() || "#ecebe6";
-    return { canvas, ctx: canvas.getContext("2d"), card, colors, bg, type: canvas.dataset.art, visible: false, energy: 0, w: 0, h: 0 };
-  });
-
-  function sizeArt(a) {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    a.w = a.canvas.clientWidth;
-    a.h = a.canvas.clientHeight;
-    a.canvas.width = a.w * dpr;
-    a.canvas.height = a.h * dpr;
-    a.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  arts.forEach(sizeArt);
-  addEventListener("resize", () => arts.forEach(sizeArt));
-
-  const artIO = new IntersectionObserver((entries) => {
-    entries.forEach((e) => { arts.find((a) => a.canvas === e.target).visible = e.isIntersecting; });
-  });
-  arts.forEach((a) => artIO.observe(a.canvas));
-
-  const drawers = {
-    waves(a, t) {
-      const { ctx, w, h, colors } = a;
-      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
-      const mx = a.card._mx ?? 0.5, my = a.card._my ?? 0.5;
-      for (let i = 0; i < 22; i++) {
-        ctx.beginPath();
-        const amp = 18 + a.energy * 40 + i * 1.5;
-        for (let x = 0; x <= w; x += 6) {
-          const y = h * (0.15 + i * 0.035) + Math.sin(x * 0.012 + t * 1.4 + i * 0.35 + mx * 4) * amp * Math.sin(t * 0.5 + i * 0.2 + my * 3);
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-        }
-        ctx.strokeStyle = colors[i % 3];
-        ctx.globalAlpha = 0.2 + (i / 22) * 0.7;
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-    },
-    orbits(a, t) {
-      const { ctx, w, h, colors } = a;
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = a.bg;
-      ctx.fillRect(0, 0, w, h);
-      ctx.globalAlpha = 1;
-      const cx = w * (a.card._mx ?? 0.5), cy = h * (a.card._my ?? 0.5);
-      const speed = 1 + a.energy * 2.5;
-      for (let i = 0; i < 60; i++) {
-        const ang = t * speed * (0.3 + (i % 7) * 0.08) + i * 2.4;
-        const rad = 20 + i * (Math.min(w, h) / 120) * (1 + a.energy * 0.3);
-        const x = w / 2 + (cx - w / 2) * 0.3 + Math.cos(ang) * rad;
-        const y = h / 2 + (cy - h / 2) * 0.3 + Math.sin(ang * 1.1) * rad;
-        ctx.beginPath();
-        ctx.arc(x, y, 2 + (i % 4), 0, Math.PI * 2);
-        ctx.fillStyle = colors[i % 3];
-        ctx.fill();
-      }
-    },
-    grid(a, t) {
-      const { ctx, w, h, colors } = a;
-      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
-      const step = 26;
-      const mx = (a.card._mx ?? 0.5) * w, my = (a.card._my ?? 0.5) * h;
-      for (let y = step / 2; y < h; y += step) {
-        for (let x = step / 2; x < w; x += step) {
-          const d = Math.hypot(x - mx, y - my);
-          const wave = Math.sin(d * 0.03 - t * 3);
-          const s = 2 + (wave + 1) * (3 + a.energy * 5) * Math.max(0, 1 - d / (w * 1.2));
-          ctx.fillStyle = colors[(wave > 0.3) ? 0 : (wave > -0.3 ? 1 : 2)];
-          ctx.globalAlpha = 0.35 + (wave + 1) * 0.3;
-          ctx.fillRect(x - s / 2, y - s / 2, s, s);
-        }
-      }
-      ctx.globalAlpha = 1;
-    },
-    blobs(a, t) {
-      const { ctx, w, h, colors } = a;
-      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
-      ctx.globalCompositeOperation = "multiply";
-      for (let i = 0; i < 5; i++) {
-        const x = w * (0.5 + Math.sin(t * (0.5 + i * 0.13) + i) * 0.32) + ((a.card._mx ?? 0.5) - 0.5) * w * 0.3;
-        const y = h * (0.5 + Math.cos(t * (0.4 + i * 0.11) + i * 2) * 0.32) + ((a.card._my ?? 0.5) - 0.5) * h * 0.3;
-        const r = Math.min(w, h) * (0.35 + a.energy * 0.15);
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, colors[i % 3]);
-        g.addColorStop(1, colors[i % 3] + "00");
-        ctx.globalAlpha = 0.45;
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, w, h);
-      }
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
-    },
-  };
 
   /* ---------------- Capability hover preview ---------------- */
   const capPreview = document.querySelector(".cap-preview");
@@ -774,11 +653,7 @@
   setInterval(updateClock, 15000);
 
   /* ---------------- Main loop ---------------- */
-  let time = 0;
-
   function loop() {
-    time += 0.016;
-
     // cursor
     if (finePointer) {
       ringPos.x = lerp(ringPos.x, mouse.x, 0.18);
@@ -792,12 +667,6 @@
       m.x = lerp(m.x, m.tx, 0.15);
       m.y = lerp(m.y, m.ty, 0.15);
       m.el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0)`;
-    });
-
-    // card art
-    arts.forEach((a) => {
-      a.energy = lerp(a.energy, a.card._hover ? 1 : 0, 0.06);
-      if (a.visible && openRoom === "arbeid") drawers[a.type](a, time);
     });
 
     // capability preview

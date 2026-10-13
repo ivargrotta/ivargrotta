@@ -293,45 +293,6 @@ body.panel-open .nav__close { width: 40px; opacity: 1; margin-left: 0; }
 
 /* ---------- Work ---------- */
 .work { padding: 2rem var(--pad) clamp(6rem, 12vw, 10rem); }
-.work__grid { display: grid; gap: clamp(1.5rem, 3vw, 2.5rem); }
-@media (min-width: 800px) {
-  .work__grid { grid-template-columns: 1fr 1fr; }
-  .work__grid .card:nth-child(even) { margin-top: 8rem; }
-}
-.card {
-  --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 50%;
-  perspective: 1000px;
-  opacity: 0; transform: translateY(80px);
-  transition: opacity 1.2s var(--ease-out), transform 1.2s var(--ease-out);
-}
-.card.is-in { opacity: 1; transform: none; }
-.card__media {
-  position: relative; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden;
-  background: var(--surface);
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transform-style: preserve-3d;
-  transition: transform .6s var(--ease-out), border-radius .6s var(--ease-out);
-  box-shadow: 0 40px 70px -40px rgba(21, 30, 45, .35);
-}
-.card:hover .card__media { border-radius: 40px; }
-.card__art { width: 100%; height: 100%; display: block; transform: scale(1.05); transition: transform 1.2s var(--ease-out); }
-.card:hover .card__art { transform: scale(1.12); }
-.card__glare {
-  position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(600px circle at var(--gx) var(--gy), rgba(255,255,255,.55), transparent 40%);
-  opacity: 0; transition: opacity .4s;
-  mix-blend-mode: overlay;
-}
-.card:hover .card__glare { opacity: 1; }
-.card__info {
-  display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; column-gap: 1rem;
-  padding: 1.25rem .25rem 0;
-}
-.card__idx { color: var(--muted); font-size: .8rem; }
-.card__info h3 { font-family: var(--display); font-size: clamp(1.5rem, 2.6vw, 2.2rem); letter-spacing: -0.03em; font-weight: 700; }
-.card__info p { grid-column: 2; color: var(--muted); }
-.card__year { grid-row: 1; grid-column: 3; color: var(--muted); font-size: .9rem; }
-
 /* ---------- Folders ---------- */
 .work__label { margin: 0 0 1.5rem; }
 .folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 2rem; margin-bottom: clamp(4rem, 8vw, 6rem); }
