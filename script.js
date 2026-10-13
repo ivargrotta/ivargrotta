@@ -122,8 +122,8 @@
     const ctx = canvas.getContext("2d");
     let w, h, dpr, particles = [], running = false, started = false, breath = 1.5;
     let startTime = 0, burst = false, fontSize = 200;
-    const letterColors = ["#f4f3f0", "#f4f3f0", "#f4f3f0", "#f4f3f0", "#b9a8ff", "#7c5cff"];
-    const dotColors = ["#00e0ff", "#ff3cac"];
+    const letterColors = ["#15171b", "#15171b", "#15171b", "#15171b", "#2b2e35", "#3c4a5e"];
+    const dotColors = ["#22406b", "#b8352f"];
     const PAIR_GAP = 40, LOADER_R = 11, PAIR_TIME = reduceMotion ? 0 : 1300;
     const dots = dotColors.map((c, i) => ({
       x: 0, y: 0, vx: 0, vy: 0, hx: 0, hy: 0, r: LOADER_R, tr: LOADER_R, c, i, hop: 0,
@@ -269,7 +269,7 @@
           const speed = Math.min(Math.hypot(p.vx, p.vy), 20);
           // while travelling, a particle still carries its parent dot's colour
           ctx.fillStyle = speed > 2.5 ? dotColors[p.from] : p.c;
-          ctx.globalAlpha = 0.7 + Math.min(speed / 20, 0.3);
+          ctx.globalAlpha = 0.85 + Math.min(speed / 20, 0.15);
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r + speed * 0.1, 0, Math.PI * 2);
           ctx.fill();
@@ -315,8 +315,9 @@
         ctx.translate(d.x, d.y);
         ctx.rotate(ang);
         ctx.scale(1 + sp, 1 - sp * 0.6);
-        ctx.shadowColor = d.c;
-        ctx.shadowBlur = d.r * 1.6;
+        ctx.shadowColor = "rgba(21, 30, 45, 0.18)";
+        ctx.shadowBlur = d.r * 0.8;
+        ctx.shadowOffsetY = d.r * 0.25;
         ctx.fillStyle = d.c;
         ctx.beginPath();
         ctx.arc(0, 0, d.r, 0, Math.PI * 2);
@@ -434,7 +435,8 @@
     const card = canvas.closest(".card");
     const cs = getComputedStyle(card);
     const colors = ["--c1", "--c2", "--c3"].map((v) => cs.getPropertyValue(v).trim());
-    return { canvas, ctx: canvas.getContext("2d"), card, colors, type: canvas.dataset.art, visible: false, energy: 0, w: 0, h: 0 };
+    const bg = cs.getPropertyValue("--cbg").trim() || "#ecebe6";
+    return { canvas, ctx: canvas.getContext("2d"), card, colors, bg, type: canvas.dataset.art, visible: false, energy: 0, w: 0, h: 0 };
   });
 
   function sizeArt(a) {
@@ -456,9 +458,7 @@
   const drawers = {
     waves(a, t) {
       const { ctx, w, h, colors } = a;
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, "#0b0a14"); g.addColorStop(1, "#14102a");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
       const mx = a.card._mx ?? 0.5, my = a.card._my ?? 0.5;
       for (let i = 0; i < 22; i++) {
         ctx.beginPath();
@@ -468,16 +468,18 @@
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.strokeStyle = colors[i % 3];
-        ctx.globalAlpha = 0.25 + (i / 22) * 0.6;
-        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.2 + (i / 22) * 0.7;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
     },
     orbits(a, t) {
       const { ctx, w, h, colors } = a;
-      ctx.fillStyle = "rgba(14, 8, 6, 0.25)";
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = a.bg;
       ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 1;
       const cx = w * (a.card._mx ?? 0.5), cy = h * (a.card._my ?? 0.5);
       const speed = 1 + a.energy * 2.5;
       for (let i = 0; i < 60; i++) {
@@ -493,7 +495,7 @@
     },
     grid(a, t) {
       const { ctx, w, h, colors } = a;
-      ctx.fillStyle = "#06100d"; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
       const step = 26;
       const mx = (a.card._mx ?? 0.5) * w, my = (a.card._my ?? 0.5) * h;
       for (let y = step / 2; y < h; y += step) {
@@ -510,16 +512,16 @@
     },
     blobs(a, t) {
       const { ctx, w, h, colors } = a;
-      ctx.fillStyle = "#0a0712"; ctx.fillRect(0, 0, w, h);
-      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = a.bg; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "multiply";
       for (let i = 0; i < 5; i++) {
         const x = w * (0.5 + Math.sin(t * (0.5 + i * 0.13) + i) * 0.32) + ((a.card._mx ?? 0.5) - 0.5) * w * 0.3;
         const y = h * (0.5 + Math.cos(t * (0.4 + i * 0.11) + i * 2) * 0.32) + ((a.card._my ?? 0.5) - 0.5) * h * 0.3;
         const r = Math.min(w, h) * (0.35 + a.energy * 0.15);
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, colors[i % 3]);
-        g.addColorStop(1, "transparent");
-        ctx.globalAlpha = 0.55;
+        g.addColorStop(1, colors[i % 3] + "00");
+        ctx.globalAlpha = 0.45;
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, w, h);
       }
@@ -583,19 +585,19 @@
           const y = h * (0.2 + i * 0.016) + n * (40 + my * 80);
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
-        const hue = 250 + i * 3 + Math.sin(t) * 40;
-        ctx.strokeStyle = `hsla(${hue}, 90%, 65%, ${0.05 + i * 0.004})`;
+        const hue = 210 + i * 0.5 + Math.sin(t) * 8;
+        ctx.strokeStyle = `hsla(${hue}, 25%, 75%, ${0.04 + i * 0.003})`;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
       // the two brand dots drift through the menu, nudged by the cursor
-      ["0, 224, 255", "255, 60, 172"].forEach((rgb, i) => {
+      ["110, 139, 168", "184, 53, 47"].forEach((rgb, i) => {
         const a = t * 1.5 + i * Math.PI;
         const x = w * (0.72 + Math.cos(a) * 0.12) + (mx - 0.5) * 80 * (i ? -1 : 1);
         const y = h * (0.3 + Math.sin(a * 1.3) * 0.12) + (my - 0.5) * 80;
         const r = Math.min(w, h) * 0.22;
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, `rgba(${rgb}, 0.35)`);
+        g.addColorStop(0, `rgba(${rgb}, 0.28)`);
         g.addColorStop(1, `rgba(${rgb}, 0)`);
         ctx.fillStyle = g;
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
