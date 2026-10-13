@@ -268,7 +268,9 @@ body.panel-open .nav__close { width: 40px; opacity: 1; margin-left: 0; }
   pointer-events: none;
 }
 .hero__bottom > * { pointer-events: auto; }
-.hero__clock { display: grid; gap: .25rem; text-align: right; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.hero__clock { display: grid; gap: .25rem; justify-items: end; text-align: right; font-size: .9rem; font-variant-numeric: tabular-nums; color: var(--fg); }
+.hero__clock #clock { transition: color .4s, letter-spacing .6s var(--ease-out); }
+.hero__clock:hover #clock { color: var(--dot-b); letter-spacing: .12em; }
 /* Oslo coordinates, typed in like a terminal */
 .hero__coords { display: grid; gap: .25rem; }
 .type {
@@ -407,6 +409,25 @@ body.panel-open .nav__close { width: 40px; opacity: 1; margin-left: 0; }
 }
 
 /* ---------- Rooms (panels) ---------- */
+/* Tid: the clockwork universe opens as a circle from the little clock */
+.panel--clock {
+  background: #07090d;
+  clip-path: circle(0px at var(--mx, 95%) var(--my, 95%));
+  transition: clip-path 1.2s var(--ease), visibility 0s 1.2s;
+}
+.panel--clock.is-open { clip-path: circle(150% at var(--mx, 95%) var(--my, 95%)); transition: clip-path 1.2s var(--ease), visibility 0s; }
+.clock-world { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.clock-close {
+  position: absolute; top: 1.25rem; right: var(--pad); width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid rgba(244, 243, 239, .2); transition: border-color .3s, transform .6s var(--ease-out);
+}
+.clock-close:hover { border-color: rgba(244, 243, 239, .7); transform: rotate(90deg); }
+.clock-close i { position: absolute; left: 50%; top: 50%; width: 14px; height: 1.5px; margin: -.75px 0 0 -7px; background: #f4f3ef; transform: rotate(45deg); }
+.clock-close i + i { transform: rotate(-45deg); }
+body.panel-clock .header { opacity: 0; pointer-events: none; }
+.header { transition: background .6s, opacity .6s; }
+body.panel-clock .cursor__dot { background: #c9a35c; }
+
 .panel {
   position: fixed; inset: 0; z-index: 110;
   visibility: hidden; pointer-events: none;

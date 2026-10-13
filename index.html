@@ -68,7 +68,7 @@
           <span class="eyebrow">Oslo</span>
           <span class="type" id="coords" data-text="59°54′50″N  10°45′08″E" aria-hidden="true"></span>
         </p>
-        <p class="hero__clock reveal-up"><span class="eyebrow">Din tid</span><span id="clock">—:—</span></p>
+        <button class="hero__clock reveal-up" data-panel="tid" data-cursor="Gå inn" aria-label="Åpne klokken"><span class="eyebrow">Din tid</span><span id="clock">—:—</span></button>
       </div>
     </section>
   </main>
@@ -166,6 +166,12 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- Room 3: Tid — a fantasy clockwork universe where only the clock exists -->
+  <section class="panel panel--clock" id="tid" aria-hidden="true" aria-label="Klokke">
+    <canvas class="clock-world" id="clockCanvas" aria-hidden="true"></canvas>
+    <button class="clock-close" data-close-panel aria-label="Tilbake til forsiden" data-cursor="Tilbake"><i></i><i></i></button>
   </section>
 
   <!-- Lightbox -->

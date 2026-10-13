@@ -64,7 +64,7 @@
     setTimeout(() => loader.remove(), 1400);
     setTimeout(typeCoords, reduceMotion ? 0 : 1500);
     const deep = location.hash.slice(1);
-    if (deep === "arbeid" || deep === "kontakt") setTimeout(() => openPanel(deep), 2600);
+    if (deep === "arbeid" || deep === "kontakt" || deep === "tid") setTimeout(() => openPanel(deep), 2600);
     if (document.getElementById("folder-" + deep)) setTimeout(() => { openPanel("arbeid"); setTimeout(() => openFolder(deep), 700); }, 2600);
   }
 
@@ -425,7 +425,7 @@
   }
 
   /* ---------------- Rooms: Arbeid & Kontakt ---------------- */
-  const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt") };
+  const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt"), tid: document.getElementById("tid") };
   const navLinks = [...document.querySelectorAll(".nav__link")];
   let openRoom = null;
 
@@ -433,7 +433,7 @@
     const panel = panels[name];
     if (!panel || openRoom === name) return;
     if (openRoom) closePanel(true);
-    if (origin && name === "kontakt") {
+    if (origin && (name === "kontakt" || name === "tid")) {
       const r = origin.getBoundingClientRect();
       panel.style.setProperty("--mx", `${r.left + r.width / 2}px`);
       panel.style.setProperty("--my", `${r.top + r.height / 2}px`);
@@ -443,9 +443,11 @@
     panel.setAttribute("aria-hidden", "false");
     document.body.classList.add("panel-open");
     document.body.classList.toggle("panel-dark", name === "kontakt");
+    document.body.classList.toggle("panel-clock", name === "tid");
     navLinks.forEach((l) => l.setAttribute("aria-expanded", String(l.dataset.panel === name)));
     revealRoom(panel);
     if (name === "kontakt") menuArt.start();
+    if (name === "tid") clockWorld.start();
     // the hero keeps playing under the opening animation, then rests
     setTimeout(() => { if (openRoom) hero.pause(); }, 1000);
     if (history.replaceState) history.replaceState(null, "", "#" + name);
@@ -457,16 +459,19 @@
     closeFolder();
     const panel = panels[openRoom];
     const wasContact = openRoom === "kontakt";
+    const wasClock = openRoom === "tid";
     panel.classList.remove("is-open");
     panel.setAttribute("aria-hidden", "true");
     roomObservers.get(panel)?.disconnect();
     openRoom = null;
     setTimeout(() => {
-      if (!panel.classList.contains("is-open")) panel.querySelector(".panel__scroll").scrollTop = 0;
+      const scroller = panel.querySelector(".panel__scroll");
+      if (scroller && !panel.classList.contains("is-open")) scroller.scrollTop = 0;
       if (wasContact) menuArt.stop();
+      if (wasClock && openRoom !== "tid") clockWorld.stop();
     }, 1000);
     if (switching) return;
-    document.body.classList.remove("panel-open", "panel-dark");
+    document.body.classList.remove("panel-open", "panel-dark", "panel-clock");
     navLinks.forEach((l) => l.setAttribute("aria-expanded", "false"));
     hero.resume();
     if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
@@ -627,6 +632,332 @@
     return {
       start() { if (on || reduceMotion) return; on = true; size(); requestAnimationFrame(draw); },
       stop() { if (openRoom !== "kontakt") on = false; },
+    };
+  })();
+
+  /* ---------------- Tid: the clockwork universe ---------------- */
+  // A skeleton clock floating in a starry dark, showing the visitor's own time.
+  // Brass gears mesh in three depth layers behind it and tick forward once a second;
+  // the two brand dots orbit the dial, and everything leans with the cursor.
+  const clockWorld = (() => {
+    const c = document.getElementById("clockCanvas");
+    const ctx = c.getContext("2d");
+    const TAU = Math.PI * 2;
+    const BRASS = { back: "#3a3124", mid: "#7d6237", front: "#c9a35c" };
+    const LAYER = { back: { alpha: 0.55, par: 10 }, mid: { alpha: 0.8, par: 22 }, front: { alpha: 1, par: 44 } };
+    const DOT_A = "#8fa8c4", DOT_B = "#d9675f", PAPER = "#f4f3ef";
+    const RING_TEXT = "59°54′50″N · 10°45′08″E · ıvar · ";
+    const ROMAN = ["XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
+
+    // Gear train, in units of the module m (tooth size). Each child meshes with its parent.
+    const train = [
+      { teeth: 60, layer: "back" },
+      { parent: 0, at: -0.6, teeth: 24, layer: "mid" },
+      { parent: 1, at: -1.5, teeth: 40, layer: "back" },
+      { parent: 2, at: -2.5, teeth: 18, layer: "front" },
+      { parent: 0, at: 2.3, teeth: 20, layer: "mid" },
+      { parent: 4, at: 2.9, teeth: 46, layer: "back" },
+      { parent: 5, at: 2.0, teeth: 14, layer: "front" },
+      { parent: 5, at: 3.9, teeth: 26, layer: "mid" },
+      { parent: 0, at: 0.9, teeth: 30, layer: "mid" },
+      { parent: 8, at: 0.3, teeth: 52, layer: "back" },
+      { parent: 9, at: 1.2, teeth: 16, layer: "front" },
+      { parent: 9, at: -0.5, teeth: 22, layer: "mid" },
+    ];
+
+    let w, h, R, m, on = false, opened = 0, stars = [];
+
+    function size() {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      w = c.clientWidth; h = c.clientHeight;
+      c.width = w * dpr; c.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      R = Math.min(w, h) * (w < 700 ? 0.36 : 0.3);
+      m = R * 0.024;
+      // lay out the gear centres
+      train.forEach((g, i) => {
+        if (i === 0) { g.x = 0; g.y = 0; return; }
+        const p = train[g.parent];
+        const d = (p.teeth + g.teeth) / 2 * m;
+        g.x = p.x + Math.cos(g.at) * d;
+        g.y = p.y + Math.sin(g.at) * d;
+      });
+      stars = Array.from({ length: Math.round(w * h / 6000) }, () => ({
+        x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.2 + 0.3,
+        p: Math.random() * TAU, s: 0.5 + Math.random() * 1.5, z: Math.random(),
+      }));
+    }
+
+    function gearPath(teeth, angle) {
+      const rp = teeth * m / 2, ro = rp + m, ri = rp - 1.25 * m;
+      const step = TAU / teeth;
+      ctx.beginPath();
+      for (let i = 0; i < teeth; i++) {
+        const a = angle + i * step;
+        const pts = [[ri, a - 0.5 * step], [ri, a - 0.27 * step], [ro, a - 0.14 * step], [ro, a + 0.14 * step], [ri, a + 0.27 * step]];
+        pts.forEach(([r, t], k) => {
+          const x = Math.cos(t) * r, y = Math.sin(t) * r;
+          (i === 0 && k === 0) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+      }
+      ctx.closePath();
+      // spoked windows and the axle hole
+      const r1 = rp * 0.34, r2 = ri - m * 1.1;
+      if (r2 - r1 > m * 1.5) {
+        // spokes keep an even width, like real wheel crossings
+        const n = teeth > 34 ? 6 : 4, half = m * 0.8;
+        const go = half / r2, gi = half / r1;
+        for (let k = 0; k < n; k++) {
+          const base = angle + k * TAU / n, next = base + TAU / n;
+          ctx.moveTo(Math.cos(base + go) * r2, Math.sin(base + go) * r2);
+          ctx.arc(0, 0, r2, base + go, next - go);
+          ctx.lineTo(Math.cos(next - gi) * r1, Math.sin(next - gi) * r1);
+          ctx.arc(0, 0, r1, next - gi, base + gi, true);
+          ctx.closePath();
+        }
+      }
+      ctx.moveTo(rp * 0.12, 0);
+      ctx.arc(0, 0, rp * 0.12, 0, TAU, true);
+    }
+
+    function drawGear(g, angle, layer) {
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      gearPath(g.teeth, angle);
+      ctx.globalAlpha = LAYER[layer].alpha;
+      ctx.fillStyle = BRASS[layer];
+      ctx.fill("evenodd");
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = layer === "front" ? "rgba(255, 236, 190, .45)" : "rgba(255, 236, 190, .12)";
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // The heartbeat: a balance wheel swinging back and forth with its hairspring
+    function drawBalance(x, y, r, swing) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = BRASS.front;
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      for (let a = 0; a < TAU * 4; a += 0.15) {
+        const rr = r * 0.12 + (a / (TAU * 4)) * r * 0.55;
+        const t = a + swing * 0.6;
+        a === 0 ? ctx.moveTo(Math.cos(t) * rr, Math.sin(t) * rr) : ctx.lineTo(Math.cos(t) * rr, Math.sin(t) * rr);
+      }
+      ctx.stroke();
+      ctx.rotate(swing);
+      ctx.lineWidth = r * 0.12;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+      ctx.lineWidth = r * 0.06;
+      for (let k = 0; k < 3; k++) {
+        const a = k * TAU / 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function hand(angle, len, width, tail, color, tip) {
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.fillStyle = color;
+      ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+      ctx.beginPath();
+      ctx.moveTo(-width / 2, tail);
+      ctx.lineTo(-width * 0.18, -len);
+      ctx.lineTo(width * 0.18, -len);
+      ctx.lineTo(width / 2, tail);
+      ctx.closePath();
+      ctx.fill();
+      if (tip) {
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = tip;
+        ctx.beginPath(); ctx.arc(0, -len, width * 0.9, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawDial(now, intro) {
+      // glass
+      const g = ctx.createRadialGradient(-R * 0.3, -R * 0.4, R * 0.1, 0, 0, R * 1.05);
+      g.addColorStop(0, "rgba(255,255,255,.06)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+
+      // rims
+      ctx.strokeStyle = BRASS.front; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
+      ctx.lineWidth = 0.75; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.9, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.62, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // minute track
+      for (let i = 0; i < 60; i++) {
+        const a = i / 60 * TAU, five = i % 5 === 0;
+        const r0 = five ? R * 0.9 : R * 0.94, r1 = R * 0.985;
+        ctx.strokeStyle = five ? PAPER : "rgba(244,243,239,.45)";
+        ctx.lineWidth = five ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.sin(a) * r0, -Math.cos(a) * r0);
+        ctx.lineTo(Math.sin(a) * r1, -Math.cos(a) * r1);
+        ctx.stroke();
+      }
+
+      // roman hours
+      ctx.fillStyle = PAPER;
+      ctx.font = `500 ${Math.round(R * 0.085)}px "Space Grotesk", Inter, sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ROMAN.forEach((txt, i) => {
+        const a = i / 12 * TAU;
+        ctx.fillText(txt, Math.sin(a) * R * 0.76, -Math.cos(a) * R * 0.76);
+      });
+
+      // Oslo's coordinates engraved on a slowly turning outer ring
+      ctx.save();
+      ctx.rotate(now / 60000 * TAU * -0.25);
+      ctx.font = `400 ${Math.max(9, Math.round(R * 0.042))}px "IBM Plex Mono", monospace`;
+      ctx.fillStyle = "rgba(201,163,92,.75)";
+      const text = RING_TEXT.repeat(3), rr = R * 1.07;
+      for (let i = 0; i < text.length; i++) {
+        const a = i / text.length * TAU;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.translate(0, -rr);
+        ctx.fillText(text[i], 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // hands, from the visitor's own clock; on opening they sweep in from twelve
+      const d = new Date();
+      const s = d.getSeconds() + d.getMilliseconds() / 1000;
+      const mi = d.getMinutes() + s / 60;
+      const hr = (d.getHours() % 12) + mi / 60;
+      const e = 1 - Math.pow(1 - intro, 4);
+      hand(hr / 12 * TAU * e, R * 0.48, R * 0.05, R * 0.08, PAPER, DOT_A);
+      hand(mi / 60 * TAU * e, R * 0.72, R * 0.032, R * 0.1, PAPER, DOT_B);
+      // second hand: ticks like a real movement, with a tiny overshoot
+      const x = Math.min(1, (s % 1) / 0.18), c1 = 2.2;
+      const tick = Math.floor(s) - 1 + 1 + (c1 + 1) * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+      ctx.save();
+      ctx.rotate((tick / 60 * TAU) * e);
+      ctx.strokeStyle = DOT_B; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, R * 0.16); ctx.lineTo(0, -R * 0.86); ctx.stroke();
+      ctx.fillStyle = DOT_B;
+      ctx.beginPath(); ctx.arc(0, R * 0.16, R * 0.025, 0, TAU); ctx.fill();
+      ctx.restore();
+
+      // centre boss
+      ctx.fillStyle = BRASS.front;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.04, 0, TAU); ctx.fill();
+      ctx.fillStyle = DOT_B;
+      ctx.beginPath(); ctx.arc(0, 0, R * 0.015, 0, TAU); ctx.fill();
+    }
+
+    function frame(now) {
+      if (!on) return;
+      const intro = Math.min(1, (now - opened) / 1800);
+      const mx = mouse.active && !reduceMotion ? (mouse.x / w - 0.5) : 0;
+      const my = mouse.active && !reduceMotion ? (mouse.y / h - 0.5) : 0;
+      const cx = w / 2, cy = h / 2;
+
+      // the deep
+      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.75);
+      bg.addColorStop(0, "#151b28");
+      bg.addColorStop(1, "#06080c");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+      [["143,168,196", -0.25, -0.2], ["217,103,95", 0.3, 0.25]].forEach(([rgb, ox, oy], i) => {
+        const x = cx + w * ox + Math.sin(now / 9000 + i) * 60, y = cy + h * oy + Math.cos(now / 11000 + i) * 40;
+        const neb = ctx.createRadialGradient(x, y, 0, x, y, R * 1.6);
+        neb.addColorStop(0, `rgba(${rgb},.10)`);
+        neb.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.fillStyle = neb;
+        ctx.fillRect(0, 0, w, h);
+      });
+      for (const st of stars) {
+        ctx.globalAlpha = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(now / 1000 * st.s + st.p))) * intro;
+        ctx.fillStyle = PAPER;
+        ctx.fillRect(st.x - mx * 8 * st.z - st.r / 2, st.y - my * 8 * st.z - st.r / 2, st.r, st.r);
+      }
+      ctx.globalAlpha = 1;
+
+      // the movement: one tick a second, settling with a small overshoot
+      // seconds into the (UTC) day keep the angles small enough for exact trigonometry
+      const T = (Date.now() / 1000) % 86400;
+      const f = T % 1;
+      const settle = f < 0.2 ? 1 - Math.pow(1 - f / 0.2, 3) : 1;
+      const drive = (Math.floor(T) - 1 + settle) * (TAU / 90) + (1 - intro) * -2;
+      const angles = [drive];
+      train.forEach((g, i) => {
+        if (i === 0) return;
+        const p = train[g.parent];
+        angles[i] = -(angles[g.parent] - g.at) * p.teeth / g.teeth + g.at + Math.PI + Math.PI / g.teeth;
+      });
+
+      const scale = 0.86 + 0.14 * (1 - Math.pow(1 - intro, 3));
+      ["back", "mid"].forEach((layer) => {
+        ctx.save();
+        ctx.translate(cx - mx * LAYER[layer].par, cy - my * LAYER[layer].par);
+        ctx.scale(scale, scale);
+        train.forEach((g, i) => { if (g.layer === layer) drawGear(g, angles[i], layer); });
+        ctx.restore();
+      });
+
+      // the two brand dots, in orbit
+      ctx.save();
+      ctx.translate(cx - mx * 30, cy - my * 30);
+      [[DOT_A, 1.32, 0.42, 47000, 0], [DOT_B, 1.5, 0.36, 61000, 2.2]].forEach(([col, rx, ry, period, ph]) => {
+        ctx.save();
+        ctx.rotate(-0.35);
+        ctx.strokeStyle = "rgba(244,243,239,.07)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(0, 0, R * rx, R * rx * ry * 2.2, 0, 0, TAU); ctx.stroke();
+        const a = now / period * TAU + ph;
+        for (let k = 12; k >= 0; k--) {   // a fading trail
+          const ak = a - k * 0.035;
+          ctx.globalAlpha = (1 - k / 13) * 0.9 * intro;
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(Math.cos(ak) * R * rx, Math.sin(ak) * R * rx * ry * 2.2, R * 0.03 * (1 - k / 20), 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      // the dial itself
+      ctx.save();
+      ctx.translate(cx - mx * 6, cy - my * 6);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = intro;
+      drawDial(now, intro);
+      ctx.restore();
+
+      // a few gears and the balance wheel in front of the glass
+      ctx.save();
+      ctx.translate(cx - mx * LAYER.front.par, cy - my * LAYER.front.par);
+      ctx.scale(scale, scale);
+      train.forEach((g, i) => { if (g.layer === "front") drawGear(g, angles[i], "front"); });
+      drawBalance(R * 0.98, R * 0.78, R * 0.13, reduceMotion ? 0 : Math.sin(now / 1000 * TAU * 1.25) * 1.3);
+      ctx.restore();
+
+      requestAnimationFrame(frame);
+    }
+
+    addEventListener("resize", () => { if (on) size(); });
+    return {
+      start() {
+        if (on) return;
+        on = true;
+        size();
+        opened = performance.now();
+        requestAnimationFrame(frame);
+      },
+      stop() { on = false; },
     };
   })();
 
