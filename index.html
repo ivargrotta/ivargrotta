@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ivar Grøtta — Portfolio</title>
+  <title>ivar. — Ivar Grøtta</title>
   <meta name="description" content="Portfolio for Ivar Grøtta. Kreative idéer, digitale opplevelser og bevegelse.">
   <meta name="theme-color" content="#07070a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='9.5' cy='16' r='6.5' fill='%2300e0ff'/%3E%3Ccircle cx='22.5' cy='16' r='6.5' fill='%23ff3cac'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -15,9 +16,10 @@
 
   <!-- Preloader -->
   <div class="loader" aria-hidden="true">
-    <div class="loader__count"><span id="loaderCount">0</span>%</div>
+    <div class="loader__dots"><span class="ldot ldot--a" id="ldotA"></span><span class="ldot ldot--b" id="ldotB"></span></div>
+    <div class="loader__count"><span id="loaderCount">0</span></div>
     <div class="loader__bar"><span id="loaderBar"></span></div>
-    <div class="loader__name">Ivar Grøtta</div>
+    <div class="loader__name">ivar.</div>
   </div>
 
   <!-- Custom cursor -->
@@ -36,9 +38,8 @@
 
   <!-- Header -->
   <header class="header">
-    <a href="#top" class="logo magnetic" data-cursor="Topp">
-      <span class="logo__mark">IG</span>
-      <span class="logo__text">Ivar Grøtta</span>
+    <a href="#top" class="logo magnetic" data-cursor="Topp" aria-label="ivar. — til toppen">
+      <span class="wordmark" aria-hidden="true">ıvar<i class="wm-dot wm-dot--a"></i><i class="wm-dot wm-dot--b"></i></span>
     </a>
     <div class="header__status"><span class="pulse"></span> Tilgjengelig for nye prosjekter</div>
     <button class="menu-btn magnetic" id="menuBtn" aria-expanded="false" aria-controls="menu" data-cursor="Åpne">
@@ -74,7 +75,7 @@
     <!-- HERO -->
     <section class="hero">
       <canvas id="heroCanvas" class="hero__canvas" aria-hidden="true"></canvas>
-      <h1 class="sr-only">Ivar Grøtta — Portfolio</h1>
+      <h1 class="sr-only">ivar. — Ivar Grøtta</h1>
 
       <div class="hero__meta hero__meta--tl reveal-up">
         <span class="eyebrow">Portfolio</span>
@@ -99,19 +100,19 @@
           <span class="scroll-cue__arrow">↓</span>
         </a>
       </div>
-      <p class="hero__hint">Beveg musen over navnet — klikk for en overraskelse</p>
+      <p class="hero__hint">Beveg musen over prikkene — klikk for en overraskelse</p>
     </section>
 
     <!-- MARQUEE -->
     <section class="marquee" aria-hidden="true">
       <div class="marquee__row" data-speed="1">
         <div class="marquee__track">
-          <span>Design</span><em>✦</em><span class="outline">Motion</span><em>✦</em><span>Strategi</span><em>✦</em><span class="outline">Interaksjon</span><em>✦</em><span>Merkevare</span><em>✦</em><span class="outline">Idé</span><em>✦</em>
+          <span>Design</span><em class="dd"><i></i><i></i></em><span class="outline">Motion</span><em class="dd"><i></i><i></i></em><span>Strategi</span><em class="dd"><i></i><i></i></em><span class="outline">Interaksjon</span><em class="dd"><i></i><i></i></em><span>Merkevare</span><em class="dd"><i></i><i></i></em><span class="outline">Idé</span><em class="dd"><i></i><i></i></em>
         </div>
       </div>
       <div class="marquee__row marquee__row--rev" data-speed="-1">
         <div class="marquee__track">
-          <span class="outline">Kreativitet</span><em>●</em><span>Teknologi</span><em>●</em><span class="outline">Historiefortelling</span><em>●</em><span>Opplevelser</span><em>●</em>
+          <span class="outline">Kreativitet</span><em class="dd"><i></i><i></i></em><span>Teknologi</span><em class="dd"><i></i><i></i></em><span class="outline">Historiefortelling</span><em class="dd"><i></i><i></i></em><span>Opplevelser</span><em class="dd"><i></i><i></i></em>
         </div>
       </div>
     </section>
@@ -133,7 +134,7 @@
     <section class="work" id="arbeid">
       <div class="section-head">
         <p class="eyebrow reveal-up">(Utvalgt arbeid)</p>
-        <h2 class="section-title split" data-split>Prosjekter som beveger</h2>
+        <h2 class="section-title split" data-split data-dot>Prosjekter som beveger</h2>
       </div>
 
       <div class="work__grid">
@@ -160,7 +161,7 @@
     <section class="caps">
       <div class="section-head">
         <p class="eyebrow reveal-up">(Hva jeg gjør)</p>
-        <h2 class="section-title split" data-split>Kompetanse</h2>
+        <h2 class="section-title split" data-split data-dot>Kompetanse</h2>
       </div>
       <ul class="caps__list">
         <li class="cap" data-color="#7c5cff"><span class="cap__idx">01</span><span class="cap__title" data-text="Kreativ retning">Kreativ retning</span><span class="cap__desc">Konsept, idé og helhet</span><span class="cap__arrow">→</span></li>
@@ -176,7 +177,7 @@
       <p class="eyebrow reveal-up">(Kontakt)</p>
       <h2 class="contact__title">
         <span class="line"><span class="split" data-split>Har du en idé?</span></span>
-        <span class="line"><span class="gradient-text split" data-split>La oss snakke.</span></span>
+        <span class="line"><span class="gradient-text split" data-split data-dot>La oss snakke</span></span>
       </h2>
       <div class="contact__actions">
         <a href="tel:+4798832159" class="pill magnetic" data-cursor="Ring">
@@ -196,7 +197,7 @@
   </main>
 
   <footer class="footer">
-    <span>© 2026 Ivar Grøtta</span>
+    <span>© 2026 <span class="wordmark wordmark--sm" aria-label="ivar.">ıvar<i class="wm-dot wm-dot--a"></i><i class="wm-dot wm-dot--b"></i></span> — Ivar Grøtta</span>
     <span class="footer__clock" id="clock">Norge —:—</span>
     <a href="#top" class="hover-line" data-cursor="Topp">Til toppen ↑</a>
   </footer>

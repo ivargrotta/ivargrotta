@@ -22,6 +22,8 @@
     el.innerHTML = words
       .map((w, i) => `<span class="w"><span style="--i:${i}">${w}</span></span>`)
       .join(" ");
+    // brand full stop on headings
+    if (el.hasAttribute("data-dot")) el.insertAdjacentHTML("beforeend", '<span class="tdot"></span>');
   });
 
   /* ---------------- Statement: per-word scroll highlight ---------------- */
@@ -40,11 +42,21 @@
   const loadStart = performance.now();
   const loadDuration = reduceMotion ? 200 : 1600;
 
+  const ldots = [document.getElementById("ldotA"), document.getElementById("ldotB")];
+
   function tickLoader(now) {
     const t = clamp((now - loadStart) / loadDuration, 0, 1);
-    progress = Math.round((1 - Math.pow(1 - t, 3)) * 100);
-    loaderCount.textContent = progress;
+    const e = 1 - Math.pow(1 - t, 3);
+    progress = Math.round(e * 100);
+    loaderCount.textContent = String(progress).padStart(3, "0");
     loaderBar.style.width = progress + "%";
+    // the two dots circle each other and land side by side at exactly 100
+    const ang = Math.PI + e * Math.PI * 4;
+    const rad = 40 * (1 + 0.6 * Math.sin(e * Math.PI));
+    ldots.forEach((d, i) => {
+      const a = ang + i * Math.PI;
+      d.style.transform = `translate(${Math.cos(a) * rad}px, ${Math.sin(a) * rad * 0.9}px)`;
+    });
     if (t < 1) requestAnimationFrame(tickLoader);
     else setTimeout(revealSite, 250);
   }
@@ -101,12 +113,21 @@
     });
   }
 
-  /* ---------------- Hero particle text ---------------- */
+  /* ---------------- Hero: two dots become "ivar." ---------------- */
+  // Story: the two brand dots from the loader sit side by side, then fly to
+  // their places (the dot over the i and the full stop) and burst into the
+  // particles that build the letters between them.
   const hero = (() => {
     const canvas = document.getElementById("heroCanvas");
     const ctx = canvas.getContext("2d");
     let w, h, dpr, particles = [], running = false, started = false, breath = 1.5;
-    const palette = ["#7c5cff", "#00e0ff", "#ff3cac", "#f4f3f0", "#f4f3f0"];
+    let startTime = 0, burst = false, fontSize = 200;
+    const letterColors = ["#f4f3f0", "#f4f3f0", "#f4f3f0", "#f4f3f0", "#b9a8ff", "#7c5cff"];
+    const dotColors = ["#00e0ff", "#ff3cac"];
+    const PAIR_GAP = 40, LOADER_R = 11, PAIR_TIME = reduceMotion ? 0 : 1300;
+    const dots = dotColors.map((c, i) => ({
+      x: 0, y: 0, vx: 0, vy: 0, hx: 0, hy: 0, r: LOADER_R, tr: LOADER_R, c, i, hop: 0,
+    }));
 
     function build() {
       dpr = Math.min(devicePixelRatio || 1, 2);
@@ -116,28 +137,39 @@
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Draw the name offscreen and sample pixels
+      // Draw the dotless word offscreen and sample its pixels
       const off = document.createElement("canvas");
       off.width = w; off.height = h;
       const o = off.getContext("2d");
-      const mobile = w < 700;
-      const lines = mobile ? ["IVAR", "GRØTTA"] : ["IVAR GRØTTA"];
-      let size = mobile ? w * 0.27 : w * 0.125;
+      const word = "ıvar";
+      let size = Math.min(h * 0.42, w * 0.4);
       o.font = `700 ${size}px "Space Grotesk", Inter, sans-serif`;
-      const widest = Math.max(...lines.map((l) => o.measureText(l).width));
-      if (widest > w * 0.9) size *= (w * 0.9) / widest;
+      // word + room for the full stop must fit in 86% of the width
+      const fit = (o.measureText(word).width + size * 0.3) / (w * 0.86);
+      if (fit > 1) size /= fit;
+      fontSize = size;
       o.font = `700 ${size}px "Space Grotesk", Inter, sans-serif`;
-      o.textAlign = "center";
-      o.textBaseline = "middle";
+      o.textBaseline = "alphabetic";
       o.fillStyle = "#fff";
-      const lh = size * 0.95;
-      const cy = h * (mobile ? 0.42 : 0.45);
-      lines.forEach((l, i) => o.fillText(l, w / 2, cy + (i - (lines.length - 1) / 2) * lh));
+      const wordW = o.measureText(word).width;
+      const totalW = wordW + size * 0.3;
+      const x0 = (w - totalW) / 2;
+      const baseline = h * 0.47 + size * 0.36;
+      o.fillText(word, x0, baseline);
+
+      // Brand dots: over the ı and as the full stop
+      const dotR = size * 0.062;
+      const iW = o.measureText("ı").width;
+      dots[0].hx = x0 + iW / 2;
+      dots[0].hy = baseline - size * 0.645;
+      dots[1].hx = x0 + wordW + size * 0.04 + dotR;
+      dots[1].hy = baseline - dotR;
+      dots.forEach((d) => { d.homeR = dotR; });
 
       const data = o.getImageData(0, 0, w, h).data;
-      // Sample pixels, widening the gap until the particle count stays smooth
-      const maxParticles = mobile ? 2800 : 3600;
-      let gap = Math.max(mobile ? 2 : 3, Math.round(size / (mobile ? 30 : 34)));
+      const mobile = w < 700;
+      const maxParticles = mobile ? 2600 : 3600;
+      let gap = Math.max(mobile ? 2 : 3, Math.round(size / 34));
       let targets;
       do {
         targets = [];
@@ -152,26 +184,41 @@
       breath = Math.min(1.5, gap * 0.3);
 
       const old = particles;
+      const midX = (dots[0].hx + dots[1].hx) / 2;
       particles = targets.map(([x, y], i) => {
         const p = old[i];
+        const from = x < midX ? 0 : 1;
         return {
-          x: p ? p.x : Math.random() * w,
-          y: p ? p.y : Math.random() * h,
-          vx: 0, vy: 0,
-          hx: x, hy: y,
+          x: p ? p.x : 0, y: p ? p.y : 0, vx: 0, vy: 0, hx: x, hy: y, from,
           r: gap * 0.38 * (0.85 + Math.random() * 0.3),
-          c: palette[(Math.random() * palette.length) | 0],
-          f: 0.04 + Math.random() * 0.04,
+          c: letterColors[(Math.random() * letterColors.length) | 0],
+          f: 0.03 + Math.random() * 0.04,
+          born: p ? p.born : false,
         };
       });
-      if (!started) {
-        particles.forEach((p) => {
-          const a = Math.random() * Math.PI * 2;
-          const d = Math.max(w, h) * (0.6 + Math.random() * 0.6);
-          p.x = w / 2 + Math.cos(a) * d;
-          p.y = h / 2 + Math.sin(a) * d;
-        });
+      if (burst) {
+        particles.forEach((p) => { if (!p.born) { p.born = true; p.x = p.hx; p.y = p.hy; } });
+        dots.forEach((d) => { d.tr = d.homeR; });
       }
+    }
+
+    function pairHome() {
+      // Same spot as the loader dots, so the hand-off is seamless
+      dots[0].hx0 = w / 2 - PAIR_GAP; dots[1].hx0 = w / 2 + PAIR_GAP;
+      dots.forEach((d) => { d.x = d.hx0; d.y = h / 2; });
+    }
+
+    function doBurst() {
+      burst = true;
+      dots.forEach((d) => { d.tr = d.homeR; });
+      particles.forEach((p, i) => {
+        const d = dots[p.from];
+        p.born = true;
+        p.x = d.x + (Math.random() - 0.5) * 6;
+        p.y = d.y + (Math.random() - 0.5) * 6;
+        const a = Math.random() * Math.PI * 2, sp = 6 + Math.random() * 22;
+        p.vx = Math.cos(a) * sp; p.vy = Math.sin(a) * sp;
+      });
     }
 
     function explode(cx, cy) {
@@ -182,53 +229,103 @@
         p.vx += (dx / dist) * force;
         p.vy += (dy / dist) * force;
       });
+      // the dots jump with joy
+      dots.forEach((d, i) => { d.vy -= 28 + i * 6; d.vx += (i ? 1 : -1) * 6; });
     }
 
-    let t = 0;
-    function frame() {
+    let t = 0, nextHop = 4;
+    function frame(now) {
       if (!running) return;
       t += 0.01;
       ctx.clearRect(0, 0, w, h);
       const rect = canvas.getBoundingClientRect();
       const mx = mouse.x - rect.left;
       const my = mouse.y - rect.top;
-      const radius = Math.min(160, w * 0.18);
+      const radius = Math.min(170, w * 0.2);
+      const elapsed = now - startTime;
 
-      for (const p of particles) {
-        // spring home with gentle breathing
-        const hx = p.hx + Math.sin(t * 2 + p.hy * 0.02) * breath;
-        const hy = p.hy + Math.cos(t * 2 + p.hx * 0.02) * breath;
-        p.vx += (hx - p.x) * p.f;
-        p.vy += (hy - p.y) * p.f;
+      if (!burst && elapsed > PAIR_TIME) doBurst();
 
-        if (mouse.active) {
-          const dx = p.x - mx, dy = p.y - my;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < radius * radius) {
-            const d = Math.sqrt(d2) || 1;
-            const force = (1 - d / radius) * 9;
-            // repel + swirl
-            p.vx += (dx / d) * force - (dy / d) * force * 0.5;
-            p.vy += (dy / d) * force + (dx / d) * force * 0.5;
+      // Particles
+      if (burst) {
+        for (const p of particles) {
+          const hx = p.hx + Math.sin(t * 2 + p.hy * 0.02) * breath;
+          const hy = p.hy + Math.cos(t * 2 + p.hx * 0.02) * breath;
+          p.vx += (hx - p.x) * p.f;
+          p.vy += (hy - p.y) * p.f;
+          if (mouse.active) {
+            const dx = p.x - mx, dy = p.y - my;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < radius * radius) {
+              const d = Math.sqrt(d2) || 1;
+              const force = (1 - d / radius) * 9;
+              p.vx += (dx / d) * force - (dy / d) * force * 0.5;
+              p.vy += (dy / d) * force + (dx / d) * force * 0.5;
+            }
+          }
+          p.vx *= 0.84; p.vy *= 0.84;
+          p.x += p.vx; p.y += p.vy;
+
+          const speed = Math.min(Math.hypot(p.vx, p.vy), 20);
+          // while travelling, a particle still carries its parent dot's colour
+          ctx.fillStyle = speed > 2.5 ? dotColors[p.from] : p.c;
+          ctx.globalAlpha = 0.7 + Math.min(speed / 20, 0.3);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r + speed * 0.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // Idle: every few seconds the dots take turns doing a little hop
+      if (burst && t > nextHop && !reduceMotion) {
+        dots[0].vy -= fontSize * 0.07;
+        setTimeout(() => { dots[1].vy -= fontSize * 0.07; }, 180);
+        nextHop = t + 5 + Math.random() * 3;
+      }
+
+      // Dots
+      for (const d of dots) {
+        let hx, hy;
+        if (!burst) {
+          // breathing side by side, exactly where the loader left them
+          hx = d.hx0; hy = h / 2 + Math.sin(elapsed / 180 + d.i * Math.PI) * 3;
+        } else {
+          hx = d.hx; hy = d.hy;
+          // curious: lean toward the cursor when it comes close
+          if (mouse.active) {
+            const dx = mx - hx, dy = my - hy, dist = Math.hypot(dx, dy);
+            const reach = fontSize * 1.2;
+            if (dist < reach) {
+              const pull = (1 - dist / reach) * fontSize * 0.18;
+              hx += (dx / (dist || 1)) * pull;
+              hy += (dy / (dist || 1)) * pull;
+            }
           }
         }
-        p.vx *= 0.84;
-        p.vy *= 0.84;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        const speed = Math.min(Math.hypot(p.vx, p.vy), 20);
-        ctx.fillStyle = p.c;
-        ctx.globalAlpha = 0.65 + Math.min(speed / 20, 0.35);
+        d.vx += (hx - d.x) * (burst ? 0.05 : 0.2);
+        d.vy += (hy - d.y) * (burst ? 0.05 : 0.2);
+        d.vx *= 0.82; d.vy *= 0.82;
+        d.x += d.vx; d.y += d.vy;
+        d.r = lerp(d.r, d.tr, 0.06);
+        // squash & stretch with speed
+        const sp = Math.min(Math.hypot(d.vx, d.vy) / 30, 0.35);
+        const ang = Math.atan2(d.vy, d.vx);
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.rotate(ang);
+        ctx.scale(1 + sp, 1 - sp * 0.6);
+        ctx.shadowColor = d.c;
+        ctx.shadowBlur = d.r * 1.6;
+        ctx.fillStyle = d.c;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r + speed * 0.12, 0, Math.PI * 2);
+        ctx.arc(0, 0, d.r, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
       }
-      ctx.globalAlpha = 1;
       requestAnimationFrame(frame);
     }
 
-    // Pause when off-screen
     new IntersectionObserver(([entry]) => {
       if (!started) return;
       if (entry.isIntersecting && !running) { running = true; requestAnimationFrame(frame); }
@@ -251,13 +348,19 @@
       start() {
         const go = () => {
           build();
+          pairHome();
           started = true;
           running = true;
-          if (reduceMotion) particles.forEach((p) => { p.x = p.hx; p.y = p.hy; });
+          startTime = performance.now();
+          if (reduceMotion) {
+            doBurst();
+            particles.forEach((p) => { p.x = p.hx; p.y = p.hy; p.vx = p.vy = 0; });
+            dots.forEach((d) => { d.x = d.hx; d.y = d.hy; d.r = d.tr; });
+          }
           requestAnimationFrame(frame);
         };
         if (document.fonts && document.fonts.load) {
-          document.fonts.load('700 100px "Space Grotesk"').then(go, go);
+          document.fonts.load('700 100px "Space Grotesk"', "ıvar").then(go, go);
         } else go();
       },
     };
@@ -485,6 +588,18 @@
         ctx.lineWidth = 1;
         ctx.stroke();
       }
+      // the two brand dots drift through the menu, nudged by the cursor
+      ["0, 224, 255", "255, 60, 172"].forEach((rgb, i) => {
+        const a = t * 1.5 + i * Math.PI;
+        const x = w * (0.72 + Math.cos(a) * 0.12) + (mx - 0.5) * 80 * (i ? -1 : 1);
+        const y = h * (0.3 + Math.sin(a * 1.3) * 0.12) + (my - 0.5) * 80;
+        const r = Math.min(w, h) * 0.22;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(${rgb}, 0.35)`);
+        g.addColorStop(1, `rgba(${rgb}, 0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      });
       requestAnimationFrame(draw);
     }
     addEventListener("resize", () => on && size());
