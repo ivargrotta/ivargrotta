@@ -648,7 +648,7 @@
     const BRASS = { back: "#3a3124", mid: "#7d6237", front: "#c9a35c" };
     const LAYER = { back: { alpha: 0.55, par: 10 }, mid: { alpha: 0.8, par: 22 }, front: { alpha: 1, par: 44 } };
     const DOT_A = "#8fa8c4", DOT_B = "#d9675f", PAPER = "#f4f3ef";
-    const RING_TEXT = "59°54′50″N · 10°45′08″E · ıvar · ";
+    const RING_TEXT = "59°55′01″N · 10°43′39″E · ıvar · ";
     const ROMAN = ["XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
 
     // Gear train, in units of the module m (tooth size). Each child meshes with its parent.
@@ -968,8 +968,9 @@
   // recoloured to the site's palette, with 3D buildings and a live coordinate readout.
   const mapRoom = (() => {
     const STYLE = "https://tiles.openfreemap.org/styles/positron";
-    const OSLO = [10.7522, 59.9139];
-    const HOME = { center: OSLO, zoom: 15.6, pitch: 55, bearing: -18 };
+    // Slottet, the Royal Palace, looking east down Karl Johans gate
+    const OSLO = [10.7275, 59.91694];
+    const HOME = { center: OSLO, zoom: 16.2, pitch: 58, bearing: 72 };
     const readout = document.getElementById("mapCoords");
     const errorBox = document.getElementById("mapError");
     let map = null, lib = null, is3D = true;
