@@ -235,7 +235,63 @@
       });
     }
 
+    /* Background: a quiet field of tiny dots that breathes in slow waves,
+       swells around the cursor, and carries ripples sent out by the two brand dots */
+    const ripples = [];
+    function ripple(x, y, color) { if (!reduceMotion) ripples.push({ x, y, color, age: 0 }); }
+
+    function drawField(mx, my) {
+      const step = w < 700 ? 22 : 30;
+      const tf = reduceMotion ? 0 : t;
+      const lens = Math.min(240, w * 0.3);
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        ripples[i].age += 1;
+        if (ripples[i].age > 150) ripples.splice(i, 1);
+      }
+      ctx.fillStyle = "#15171b";
+      for (let gy = step / 2; gy < h; gy += step) {
+        for (let gx = step / 2; gx < w; gx += step) {
+          const wave = Math.sin(gx * 0.008 + tf * 0.9) * Math.cos(gy * 0.011 - tf * 0.7)
+            + 0.5 * Math.sin((gx + gy) * 0.005 + tf * 1.3);
+          const k = (wave + 1.5) / 3;            // 0..1
+          let x = gx + Math.cos(gy * 0.01 + tf) * 3;
+          let y = gy + wave * 4;
+          let r = 0.7 + k * 0.9;
+          let a = 0.06 + k * 0.12;
+          let tint = null;
+          if (mouse.active) {
+            const dx = x - mx, dy = y - my, d = Math.hypot(dx, dy);
+            if (d < lens) {
+              const f = 1 - d / lens;
+              r *= 1 + f * 1.5;
+              a += f * 0.22;
+              x += (dx / (d || 1)) * f * 10;
+              y += (dy / (d || 1)) * f * 10;
+            }
+          }
+          for (const rp of ripples) {
+            const ring = rp.age * 7;
+            const off = Math.abs(Math.hypot(gx - rp.x, gy - rp.y) - ring);
+            if (off < 26) {
+              const f = (1 - off / 26) * (1 - rp.age / 150);
+              r *= 1 + f * 1.4;
+              a += f * 0.5;
+              if (f > 0.25) tint = rp.color;
+            }
+          }
+          ctx.globalAlpha = Math.min(a, 0.85);
+          if (tint) ctx.fillStyle = tint;
+          // tiny dots as squares (cheap), anything that swells as a true circle
+          if (r < 1.3) ctx.fillRect(x - r, y - r, r * 2, r * 2);
+          else { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+          if (tint) ctx.fillStyle = "#15171b";
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
     function explode(cx, cy) {
+      ripple(cx, cy, dotColors[1]);
       particles.forEach((p) => {
         const dx = p.x - cx, dy = p.y - cy;
         const dist = Math.hypot(dx, dy) || 1;
@@ -258,7 +314,12 @@
       const radius = Math.min(170, w * 0.2);
       const elapsed = now - startTime;
 
-      if (!burst && elapsed > PAIR_TIME) doBurst();
+      if (!burst && elapsed > PAIR_TIME) {
+        doBurst();
+        dots.forEach((d) => ripple(d.x, d.y, d.c));
+      }
+
+      drawField(mx, my);
 
       // Particles
       if (burst) {
@@ -294,7 +355,8 @@
       // Idle: every few seconds the dots take turns doing a little hop
       if (burst && t > nextHop && !reduceMotion) {
         dots[0].vy -= fontSize * 0.07;
-        setTimeout(() => { dots[1].vy -= fontSize * 0.07; }, 180);
+        ripple(dots[0].hx, dots[0].hy, dots[0].c);
+        setTimeout(() => { dots[1].vy -= fontSize * 0.07; ripple(dots[1].hx, dots[1].hy, dots[1].c); }, 180);
         nextHop = t + 5 + Math.random() * 3;
       }
 
