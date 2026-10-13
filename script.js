@@ -649,7 +649,7 @@
   /* ---------------- Clock ---------------- */
   const clock = document.getElementById("clock");
   function updateClock() {
-    const time = new Intl.DateTimeFormat("no-NO", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" }).format(new Date());
+    const time = new Intl.DateTimeFormat("no-NO", { hour: "2-digit", minute: "2-digit" }).format(new Date());
     clock.textContent = time;
   }
   updateClock();
