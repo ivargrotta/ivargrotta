@@ -95,7 +95,7 @@
 
   if (finePointer) {
     document.addEventListener("pointerover", (e) => {
-      const target = e.target.closest("a, button, [data-cursor], .cap");
+      const target = e.target.closest("a, button, [data-cursor]");
       if (!target) return;
       const text = target.dataset.cursor;
       if (text) {
@@ -106,7 +106,7 @@
       }
     });
     document.addEventListener("pointerout", (e) => {
-      const target = e.target.closest("a, button, [data-cursor], .cap");
+      const target = e.target.closest("a, button, [data-cursor]");
       if (!target || target.contains(e.relatedTarget)) return;
       cursor.classList.remove("is-label", "is-hover");
     });
@@ -424,18 +424,6 @@
     roomObservers.set(panel, io);
   }
 
-  /* ---------------- Capability hover preview ---------------- */
-  const capPreview = document.querySelector(".cap-preview");
-  const capInner = document.querySelector(".cap-preview__inner");
-  const capPos = { x: mouse.x, y: mouse.y, rot: 0 };
-  document.querySelectorAll(".cap").forEach((cap) => {
-    cap.addEventListener("pointerenter", () => {
-      capInner.style.setProperty("--pc", cap.dataset.color);
-      capPreview.classList.add("is-on");
-    });
-    cap.addEventListener("pointerleave", () => capPreview.classList.remove("is-on"));
-  });
-
   /* ---------------- Rooms: Arbeid & Kontakt ---------------- */
   const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt") };
   const navLinks = [...document.querySelectorAll(".nav__link")];
@@ -472,7 +460,6 @@
     panel.classList.remove("is-open");
     panel.setAttribute("aria-hidden", "true");
     roomObservers.get(panel)?.disconnect();
-    capPreview.classList.remove("is-on");
     openRoom = null;
     setTimeout(() => {
       if (!panel.classList.contains("is-open")) panel.querySelector(".panel__scroll").scrollTop = 0;
@@ -668,16 +655,6 @@
       m.y = lerp(m.y, m.ty, 0.15);
       m.el.style.transform = `translate3d(${m.x}px, ${m.y}px, 0)`;
     });
-
-    // capability preview
-    if (finePointer) {
-      const dx = mouse.x - capPos.x;
-      capPos.x = lerp(capPos.x, mouse.x, 0.12);
-      capPos.y = lerp(capPos.y, mouse.y, 0.12);
-      capPos.rot = lerp(capPos.rot, clamp(dx * 0.15, -15, 15), 0.1);
-      capPreview.style.translate = `${capPos.x}px ${capPos.y}px`;
-      capPreview.style.rotate = `${capPos.rot}deg`;
-    }
 
     requestAnimationFrame(loop);
   }
