@@ -235,16 +235,26 @@
       });
     }
 
+    // Click: every dot scatters across the screen and drifts free for a moment,
+    // then a magnet switches on and snaps them all back into "ivar."
+    // The two brand dots come home first; they are the magnets.
     function explode(cx, cy) {
+      const now = performance.now();
       particles.forEach((p) => {
         const dx = p.x - cx, dy = p.y - cy;
         const dist = Math.hypot(dx, dy) || 1;
-        const force = 40 + Math.random() * 40;
-        p.vx += (dx / dist) * force;
-        p.vy += (dy / dist) * force;
+        const spin = (Math.random() - 0.5) * 0.9;           // a little sideways scatter
+        const ux = dx / dist, uy = dy / dist;
+        const force = 16 + Math.random() * 26;
+        p.vx += (ux * Math.cos(spin) - uy * Math.sin(spin)) * force;
+        p.vy += (ux * Math.sin(spin) + uy * Math.cos(spin)) * force;
+        p.release = now + 950 + Math.random() * 450 + Math.min(dist, 600) * 0.4;
       });
-      // the dots jump with joy
-      dots.forEach((d, i) => { d.vy -= 28 + i * 6; d.vx += (i ? 1 : -1) * 6; });
+      dots.forEach((d, i) => {
+        const a = Math.random() * Math.PI * 2;
+        d.vx += Math.cos(a) * 34; d.vy += Math.sin(a) * 34 - 10;
+        d.release = now + 650 + i * 120;
+      });
     }
 
     let t = 0, nextHop = 4;
@@ -265,8 +275,24 @@
         for (const p of particles) {
           const hx = p.hx + Math.sin(t * 2 + p.hy * 0.02) * breath;
           const hy = p.hy + Math.cos(t * 2 + p.hx * 0.02) * breath;
-          p.vx += (hx - p.x) * p.f;
-          p.vy += (hy - p.y) * p.f;
+          let damp = 0.84;
+          if (p.release && now < p.release) {
+            // drifting free: no pull home, glide slowly to a stop, bounce off the edges
+            damp = 0.965;
+            if (p.x < 0 || p.x > w) { p.vx *= -0.6; p.x = clamp(p.x, 0, w); }
+            if (p.y < 0 || p.y > h) { p.vy *= -0.6; p.y = clamp(p.y, 0, h); }
+          } else if (p.release) {
+            // the magnet: the pull ramps up hard, then settles with a small overshoot
+            const k = Math.min(1, (now - p.release) / 650);
+            const pull = p.f * (0.25 + 2.4 * k * k);
+            p.vx += (hx - p.x) * pull;
+            p.vy += (hy - p.y) * pull;
+            damp = 0.8 + 0.06 * (1 - k);
+            if (k >= 1 && Math.abs(hx - p.x) + Math.abs(hy - p.y) < 1.5) p.release = 0;
+          } else {
+            p.vx += (hx - p.x) * p.f;
+            p.vy += (hy - p.y) * p.f;
+          }
           if (mouse.active) {
             const dx = p.x - mx, dy = p.y - my;
             const d2 = dx * dx + dy * dy;
@@ -277,7 +303,7 @@
               p.vy += (dy / d) * force + (dx / d) * force * 0.5;
             }
           }
-          p.vx *= 0.84; p.vy *= 0.84;
+          p.vx *= damp; p.vy *= damp;
           p.x += p.vx; p.y += p.vy;
 
           const speed = Math.min(Math.hypot(p.vx, p.vy), 20);
@@ -317,9 +343,14 @@
             }
           }
         }
-        d.vx += (hx - d.x) * (burst ? 0.05 : 0.2);
-        d.vy += (hy - d.y) * (burst ? 0.05 : 0.2);
-        d.vx *= 0.82; d.vy *= 0.82;
+        const free = d.release && now < d.release;
+        if (d.release && !free) d.release = 0;
+        if (!free) {
+          d.vx += (hx - d.x) * (burst ? 0.05 : 0.2);
+          d.vy += (hy - d.y) * (burst ? 0.05 : 0.2);
+        }
+        const dd = free ? 0.95 : 0.82;
+        d.vx *= dd; d.vy *= dd;
         d.x += d.vx; d.y += d.vy;
         d.r = lerp(d.r, d.tr, 0.06);
         // squash & stretch with speed
