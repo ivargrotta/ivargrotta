@@ -387,25 +387,6 @@
     };
   })();
 
-  /* ---------------- Rotating hero words ---------------- */
-  const rotator = document.getElementById("rotator");
-  if (rotator) {
-    const count = rotator.children.length;
-    let idx = 0;
-    setInterval(() => {
-      idx++;
-      rotator.style.transition = "";
-      rotator.style.transform = `translateY(-${idx * 1.5}em)`;
-      if (idx === count - 1) {
-        setTimeout(() => {
-          rotator.style.transition = "none";
-          rotator.style.transform = "translateY(0)";
-          idx = 0;
-        }, 850);
-      }
-    }, 2200);
-  }
-
   /* ---------------- Reveal inside rooms ---------------- */
   // Each time a room opens its content animates in again, observed within the room's own scroller
   const roomObservers = new Map();

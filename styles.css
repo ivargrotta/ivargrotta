@@ -256,13 +256,6 @@ body.panel-open .nav__close { width: 40px; opacity: 1; margin-left: 0; }
   overflow: hidden;
 }
 .hero__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero__meta {
-  position: absolute; top: 6.5rem; display: grid; gap: .25rem; font-size: .9rem;
-}
-.hero__meta--tr { right: var(--pad); text-align: right; }
-.rotator { display: block; height: 1.5em; overflow: hidden; }
-.rotator__track { display: grid; transition: transform .8s var(--ease); }
-.rotator__track span { height: 1.5em; }
 .hero__bottom {
   position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem;
   pointer-events: none;
