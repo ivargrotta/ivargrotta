@@ -79,6 +79,23 @@
           <p class="eyebrow reveal-up">(Utvalgt arbeid)</p>
           <h2 class="section-title split" data-split data-dot>Prosjekter som beveger</h2>
         </div>
+      <p class="eyebrow work__label reveal-up">(Mapper)</p>
+      <div class="folders">
+        <button class="folder reveal-up" data-folder="portrett" data-cursor="Åpne" aria-controls="folder-portrett">
+          <span class="folder__stack" aria-hidden="true">
+            <img src="images/portrett/portrett-01.jpg" alt="" style="--i:0" loading="lazy" decoding="async">
+            <img src="images/portrett/portrett-02.jpg" alt="" style="--i:1" loading="lazy" decoding="async">
+            <img src="images/portrett/portrett-03.jpg" alt="" style="--i:2" loading="lazy" decoding="async">
+            <img src="images/portrett/portrett-04.jpg" alt="" style="--i:3" loading="lazy" decoding="async">
+          </span>
+          <span class="folder__info">
+            <span class="folder__name">Portrett</span>
+            <span class="folder__count">04 bilder</span>
+          </span>
+        </button>
+      </div>
+
+      <p class="eyebrow work__label reveal-up">(Prosjekter)</p>
       <div class="work__grid">
         <article class="card tilt" data-cursor="Se" style="--c1:#22406b;--c2:#6e8ba8;--c3:#15171b;--cbg:#e6ecf1">
           <div class="card__media"><canvas class="card__art" data-art="waves"></canvas><div class="card__glare"></div></div>
@@ -121,7 +138,45 @@
         <button class="hover-line" data-close-panel data-cursor="Hjem">Tilbake til forsiden</button>
       </footer>
     </div>
+
+    <!-- Folder: Portrett -->
+    <div class="folder-view" id="folder-portrett" aria-hidden="true" aria-label="Portrett">
+      <div class="folder-view__scroll">
+        <div class="folder-view__head">
+          <button class="folder-view__back hover-line" data-folder-back data-cursor="Tilbake">← Arbeid</button>
+          <h2 class="section-title split" data-split data-dot>Portrett</h2>
+          <p class="folder-view__count"><span class="eyebrow">Bilder</span><span>04</span></p>
+        </div>
+        <div class="photos">
+        <button class="photo" data-index="0" data-cursor="Se">
+          <img src="images/portrett/portrett-01.jpg" alt="Portrett 1 av 4" loading="lazy" decoding="async">
+          <span class="photo__no">01</span>
+        </button>
+        <button class="photo" data-index="1" data-cursor="Se">
+          <img src="images/portrett/portrett-02.jpg" alt="Portrett 2 av 4" loading="lazy" decoding="async">
+          <span class="photo__no">02</span>
+        </button>
+        <button class="photo" data-index="2" data-cursor="Se">
+          <img src="images/portrett/portrett-03.jpg" alt="Portrett 3 av 4" loading="lazy" decoding="async">
+          <span class="photo__no">03</span>
+        </button>
+        <button class="photo" data-index="3" data-cursor="Se">
+          <img src="images/portrett/portrett-04.jpg" alt="Portrett 4 av 4" loading="lazy" decoding="async">
+          <span class="photo__no">04</span>
+        </button>
+        </div>
+      </div>
+    </div>
   </section>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Bildevisning">
+    <img class="lightbox__img" id="lightboxImg" alt="">
+    <button class="lightbox__nav lightbox__nav--prev" data-lb="-1" aria-label="Forrige bilde" data-cursor="Forrige">←</button>
+    <button class="lightbox__nav lightbox__nav--next" data-lb="1" aria-label="Neste bilde" data-cursor="Neste">→</button>
+    <p class="lightbox__count" id="lightboxCount">01 / 04</p>
+    <button class="lightbox__close" data-lb-close aria-label="Lukk bildet" data-cursor="Lukk"><i></i><i></i></button>
+  </div>
   <div class="cap-preview" aria-hidden="true"><div class="cap-preview__inner"></div></div>
 
   <!-- Room 2: Kontakt (the dark room, opens as a circle from the button) -->

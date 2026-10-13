@@ -65,6 +65,7 @@
     setTimeout(typeCoords, reduceMotion ? 0 : 1500);
     const deep = location.hash.slice(1);
     if (deep === "arbeid" || deep === "kontakt") setTimeout(() => openPanel(deep), 2600);
+    if (document.getElementById("folder-" + deep)) setTimeout(() => { openPanel("arbeid"); setTimeout(() => openFolder(deep), 700); }, 2600);
   }
 
   /* ---------------- Oslo coordinates: typewriter ---------------- */
@@ -585,6 +586,8 @@
 
   function closePanel(switching) {
     if (!openRoom) return;
+    closeLightbox();
+    closeFolder();
     const panel = panels[openRoom];
     const wasContact = openRoom === "kontakt";
     panel.classList.remove("is-open");
@@ -613,7 +616,80 @@
     e.preventDefault();
     closePanel();
   }));
-  addEventListener("keydown", (e) => { if (e.key === "Escape") closePanel(); });
+  /* ---------------- Folders & lightbox ---------------- */
+  let openFolderEl = null;
+  function openFolder(name) {
+    const view = document.getElementById("folder-" + name);
+    if (!view) return;
+    openFolderEl = view;
+    view.querySelector(".folder-view__scroll").scrollTop = 0;
+    view.querySelectorAll(".split").forEach((el) => el.classList.remove("is-in"));
+    view.classList.add("is-open");
+    view.setAttribute("aria-hidden", "false");
+    setTimeout(() => view.querySelectorAll(".split").forEach((el) => el.classList.add("is-in")), 300);
+    if (history.replaceState) history.replaceState(null, "", "#" + name);
+  }
+  function closeFolder() {
+    if (!openFolderEl) return;
+    openFolderEl.classList.remove("is-open");
+    openFolderEl.setAttribute("aria-hidden", "true");
+    openFolderEl = null;
+    if (openRoom && history.replaceState) history.replaceState(null, "", "#" + openRoom);
+  }
+  document.querySelectorAll("[data-folder]").forEach((b) => b.addEventListener("click", () => openFolder(b.dataset.folder)));
+  document.querySelectorAll("[data-folder-back]").forEach((b) => b.addEventListener("click", closeFolder));
+
+  const lightbox = document.getElementById("lightbox");
+  const lbImg = document.getElementById("lightboxImg");
+  const lbCount = document.getElementById("lightboxCount");
+  let lbPhotos = [], lbIndex = 0;
+  function showPhoto(i) {
+    lbIndex = (i + lbPhotos.length) % lbPhotos.length;
+    const src = lbPhotos[lbIndex].querySelector("img");
+    lbImg.classList.remove("is-ready");
+    const pad = (n) => String(n).padStart(2, "0");
+    lbCount.textContent = `${pad(lbIndex + 1)} / ${pad(lbPhotos.length)}`;
+    const img = new Image();
+    img.onload = () => { lbImg.src = src.src; lbImg.alt = src.alt; requestAnimationFrame(() => lbImg.classList.add("is-ready")); };
+    img.src = src.src;
+  }
+  function openLightbox(photo) {
+    lbPhotos = [...photo.parentElement.querySelectorAll(".photo")];
+    lightbox.classList.add("is-open");
+    lightbox.setAttribute("aria-hidden", "false");
+    showPhoto(lbPhotos.indexOf(photo));
+  }
+  function closeLightbox() {
+    lightbox.classList.remove("is-open");
+    lightbox.setAttribute("aria-hidden", "true");
+  }
+  const lbOpen = () => lightbox.classList.contains("is-open");
+  document.querySelectorAll(".photo").forEach((p) => p.addEventListener("click", () => openLightbox(p)));
+  lightbox.querySelectorAll("[data-lb]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); showPhoto(lbIndex + +b.dataset.lb); }));
+  lightbox.querySelector("[data-lb-close]").addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e) => { if (e.target === lightbox) closeLightbox(); });
+  // swipe between photos on touch screens
+  let touchX = null;
+  lightbox.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  lightbox.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) showPhoto(lbIndex + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  // Esc steps back one layer at a time: photo → folder → room
+  addEventListener("keydown", (e) => {
+    if (lbOpen()) {
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowRight") showPhoto(lbIndex + 1);
+      else if (e.key === "ArrowLeft") showPhoto(lbIndex - 1);
+      return;
+    }
+    if (e.key !== "Escape") return;
+    if (openFolderEl) closeFolder();
+    else closePanel();
+  });
 
   // Flowing lines in the menu background
   const menuArt = (() => {
