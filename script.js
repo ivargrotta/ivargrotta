@@ -64,7 +64,7 @@
     setTimeout(() => loader.remove(), 1400);
     setTimeout(typeCoords, reduceMotion ? 0 : 1500);
     const deep = location.hash.slice(1);
-    if (deep === "arbeid" || deep === "kontakt" || deep === "tid") setTimeout(() => openPanel(deep), 2600);
+    if (deep === "arbeid" || deep === "kontakt" || deep === "tid" || deep === "kart") setTimeout(() => openPanel(deep), 2600);
     if (document.getElementById("folder-" + deep)) setTimeout(() => { openPanel("arbeid"); setTimeout(() => openFolder(deep), 700); }, 2600);
   }
 
@@ -425,7 +425,7 @@
   }
 
   /* ---------------- Rooms: Arbeid & Kontakt ---------------- */
-  const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt"), tid: document.getElementById("tid") };
+  const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt"), tid: document.getElementById("tid"), kart: document.getElementById("kart") };
   const navLinks = [...document.querySelectorAll(".nav__link")];
   let openRoom = null;
 
@@ -433,7 +433,7 @@
     const panel = panels[name];
     if (!panel || openRoom === name) return;
     if (openRoom) closePanel(true);
-    if (origin && (name === "kontakt" || name === "tid")) {
+    if (origin && (name === "kontakt" || name === "tid" || name === "kart")) {
       const r = origin.getBoundingClientRect();
       panel.style.setProperty("--mx", `${r.left + r.width / 2}px`);
       panel.style.setProperty("--my", `${r.top + r.height / 2}px`);
@@ -444,10 +444,12 @@
     document.body.classList.add("panel-open");
     document.body.classList.toggle("panel-dark", name === "kontakt");
     document.body.classList.toggle("panel-clock", name === "tid");
+    document.body.classList.toggle("panel-map", name === "kart");
     navLinks.forEach((l) => l.setAttribute("aria-expanded", String(l.dataset.panel === name)));
     revealRoom(panel);
     if (name === "kontakt") menuArt.start();
     if (name === "tid") clockWorld.start();
+    if (name === "kart") mapRoom.open();
     // the hero keeps playing under the opening animation, then rests
     setTimeout(() => { if (openRoom) hero.pause(); }, 1000);
     if (history.replaceState) history.replaceState(null, "", "#" + name);
@@ -471,7 +473,7 @@
       if (wasClock && openRoom !== "tid") clockWorld.stop();
     }, 1000);
     if (switching) return;
-    document.body.classList.remove("panel-open", "panel-dark", "panel-clock");
+    document.body.classList.remove("panel-open", "panel-dark", "panel-clock", "panel-map");
     navLinks.forEach((l) => l.setAttribute("aria-expanded", "false"));
     hero.resume();
     if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
@@ -958,6 +960,149 @@
         requestAnimationFrame(frame);
       },
       stop() { on = false; },
+    };
+  })();
+
+  /* ---------------- Kart: central Oslo ---------------- */
+  // MapLibre (self-hosted, loaded on first visit) with OpenFreeMap's open vector tiles,
+  // recoloured to the site's palette, with 3D buildings and a live coordinate readout.
+  const mapRoom = (() => {
+    const STYLE = "https://tiles.openfreemap.org/styles/positron";
+    const OSLO = [10.7522, 59.9139];
+    const HOME = { center: OSLO, zoom: 15.6, pitch: 55, bearing: -18 };
+    const readout = document.getElementById("mapCoords");
+    const errorBox = document.getElementById("mapError");
+    let map = null, lib = null, is3D = true;
+
+    function loadLib() {
+      if (window.maplibregl) return Promise.resolve();
+      if (lib) return lib;
+      lib = new Promise((resolve, reject) => {
+        const css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = "vendor/maplibre-gl/maplibre-gl.css";
+        document.head.appendChild(css);
+        const js = document.createElement("script");
+        js.src = "vendor/maplibre-gl/maplibre-gl.js";
+        js.onload = resolve;
+        js.onerror = reject;
+        document.head.appendChild(js);
+      });
+      return lib;
+    }
+
+    const pad = (n) => String(n).padStart(2, "0");
+    function dms(v, pos, neg) {
+      const a = Math.abs(v);
+      let d = Math.floor(a), m = Math.floor((a - d) * 60), s = Math.round(((a - d) * 60 - m) * 60);
+      if (s === 60) { s = 0; m += 1; }
+      if (m === 60) { m = 0; d += 1; }
+      return `${d}°${pad(m)}′${pad(s)}″${v >= 0 ? pos : neg}`;
+    }
+    function updateReadout() {
+      const c = map.getCenter();
+      readout.textContent = `${dms(c.lat, "N", "S")}  ${dms(c.lng, "E", "W")}`;
+    }
+
+    function set(layer, prop, value) { try { map.setPaintProperty(layer, prop, value); } catch (e) { /* layer lacks this property */ } }
+
+    // Paper, ink, fjord: bring the base map into the site's palette
+    function restyle() {
+      for (const l of map.getStyle().layers) {
+        const id = l.id.toLowerCase();
+        if (l.type === "background") set(l.id, "background-color", "#f4f3ef");
+        else if (/water/.test(id) && l.type === "fill") set(l.id, "fill-color", "#cdd9e4");
+        else if (/water/.test(id) && l.type === "line") set(l.id, "line-color", "#b7c8d8");
+        else if (/park|grass|wood|forest|green|landcover|cemetery|pitch/.test(id) && l.type === "fill") set(l.id, "fill-color", "#e2e8dc");
+        else if (/building/.test(id) && l.type === "fill") set(l.id, "fill-color", "#e7e4dd");
+        else if (l.type === "symbol") {
+          set(l.id, "text-color", "#3a3d44");
+          set(l.id, "text-halo-color", "#f4f3ef");
+        }
+      }
+    }
+
+    function add3D() {
+      const sources = map.getStyle().sources;
+      const src = Object.keys(sources).find((k) => sources[k].type === "vector");
+      if (!src || map.getLayer("ivar-3d")) return;
+      const firstSymbol = map.getStyle().layers.find((l) => l.type === "symbol");
+      map.addLayer({
+        id: "ivar-3d",
+        type: "fill-extrusion",
+        source: src,
+        "source-layer": "building",
+        minzoom: 14,
+        paint: {
+          "fill-extrusion-color": ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 10], 0, "#ece9e2", 40, "#dfe3e8", 120, "#c9d3de"],
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 14, 0, 15.2, ["coalesce", ["get", "render_height"], 10]],
+          "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+          "fill-extrusion-opacity": 0.88,
+        },
+      }, firstSymbol && firstSymbol.id);
+    }
+
+    function showError() {
+      errorBox.hidden = false;
+      document.querySelector(".map-ui").hidden = true;
+    }
+
+    function init() {
+      map = new maplibregl.Map({
+        container: "map",
+        style: STYLE,
+        center: OSLO,
+        zoom: reduceMotion ? HOME.zoom : 12.4,
+        pitch: reduceMotion ? HOME.pitch : 0,
+        bearing: reduceMotion ? HOME.bearing : 0,
+        minZoom: 10.5,
+        maxZoom: 19,
+        maxBounds: [[10.45, 59.8], [11.05, 60.02]],
+        attributionControl: false,
+      });
+      map.addControl(new maplibregl.AttributionControl({
+        compact: true,
+        customAttribution: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+      }), "bottom-right");
+
+      // if the style never arrives, say so instead of showing an empty room
+      const timeout = setTimeout(() => { if (!map.isStyleLoaded()) showError(); }, 15000);
+
+      map.on("load", () => {
+        clearTimeout(timeout);
+        restyle();
+        add3D();
+        const pin = document.createElement("div");
+        pin.className = "map-pin";
+        pin.innerHTML = "<i></i><i></i>";
+        new maplibregl.Marker({ element: pin }).setLngLat(OSLO).addTo(map);
+        if (!reduceMotion) map.flyTo({ ...HOME, duration: 4200, curve: 1.6, essential: true });
+      });
+      map.on("move", updateReadout);
+    }
+
+    document.querySelectorAll("[data-map]").forEach((b) => b.addEventListener("click", () => {
+      if (!map) return;
+      const action = b.dataset.map;
+      if (action === "in") map.zoomIn();
+      else if (action === "out") map.zoomOut();
+      else if (action === "home") map.flyTo({ ...HOME, pitch: is3D ? HOME.pitch : 0, duration: reduceMotion ? 0 : 2200, essential: true });
+      else if (action === "tilt") {
+        is3D = !is3D;
+        b.textContent = is3D ? "3D" : "2D";
+        b.setAttribute("aria-pressed", String(is3D));
+        if (map.getLayer("ivar-3d")) map.setLayoutProperty("ivar-3d", "visibility", is3D ? "visible" : "none");
+        map.easeTo({ pitch: is3D ? HOME.pitch : 0, bearing: is3D ? map.getBearing() : 0, duration: 900 });
+      }
+    }));
+
+    return {
+      open() {
+        loadLib().then(() => {
+          if (!map) init();
+          else map.resize();
+        }).catch(showError);
+      },
     };
   })();
 
