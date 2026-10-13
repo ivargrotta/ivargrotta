@@ -93,6 +93,18 @@
             <span class="folder__count">04 bilder</span>
           </span>
         </button>
+        <button class="folder reveal-up" data-folder="design" data-cursor="Åpne" aria-controls="folder-design">
+          <span class="folder__stack" aria-hidden="true">
+            <img src="images/design/design-01.jpg" alt="" style="--i:0" loading="lazy" decoding="async">
+            <img src="images/design/design-02.jpg" alt="" style="--i:1" loading="lazy" decoding="async">
+            <img src="images/design/design-03.jpg" alt="" style="--i:2" loading="lazy" decoding="async">
+            <img src="images/design/juletorg-poster.jpg" alt="" style="--i:3" loading="lazy" decoding="async">
+          </span>
+          <span class="folder__info">
+            <span class="folder__name">Design</span>
+            <span class="folder__count">03 bilder · 01 film</span>
+          </span>
+        </button>
       </div>
 
       <p class="eyebrow work__label reveal-up">(Prosjekter)</p>
@@ -167,11 +179,43 @@
         </div>
       </div>
     </div>
+
+    <!-- Folder: Design -->
+    <div class="folder-view" id="folder-design" aria-hidden="true" aria-label="Design">
+      <div class="folder-view__scroll">
+        <div class="folder-view__head">
+          <button class="folder-view__back hover-line" data-folder-back data-cursor="Tilbake">← Arbeid</button>
+          <h2 class="section-title split" data-split data-dot>Design</h2>
+          <p class="folder-view__count"><span class="eyebrow">Arbeider</span><span>04</span></p>
+        </div>
+        <div class="photos photos--natural">
+        <button class="photo" data-index="0" data-title="Bli med hjem 2019" data-cursor="Se">
+          <img src="images/design/design-01.jpg" alt="Kampanjeplakat for Bli med hjem 2019 på storskjerm" loading="lazy" decoding="async">
+          <span class="photo__no">01 — Bli med hjem 2019</span>
+        </button>
+        <button class="photo" data-index="1" data-title="Turbyttedagen" data-cursor="Se">
+          <img src="images/design/design-02.jpg" alt="Banner for Turbyttedagen, DNT Romsdal, vist på en laptop" loading="lazy" decoding="async">
+          <span class="photo__no">02 — Turbyttedagen</span>
+        </button>
+        <button class="photo" data-index="2" data-title="Turbyttedagen, illustrasjoner" data-cursor="Se">
+          <img src="images/design/design-03.jpg" alt="Illustrerte turgåere fra Turbyttedagen, vist på et nettbrett" loading="lazy" decoding="async">
+          <span class="photo__no">03 — Turbyttedagen, illustrasjoner</span>
+        </button>
+        <button class="photo" data-index="3" data-type="video" data-src="images/design/juletorg.mp4" data-title="Juletorg" data-cursor="Spill">
+          <video poster="images/design/juletorg-poster.jpg" muted loop playsinline preload="none" aria-label="Film av illustrert juletorg-dekor med julenissen foran månen"><source src="images/design/juletorg.mp4" type="video/mp4"><source src="images/design/juletorg.webm" type="video/webm"></video>
+          <span class="photo__badge">Film</span>
+          <span class="photo__no">04 — Juletorg</span>
+        </button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Bildevisning">
     <img class="lightbox__img" id="lightboxImg" alt="">
+    <video class="lightbox__img lightbox__video" id="lightboxVideo" controls playsinline loop hidden></video>
+    <p class="lightbox__title" id="lightboxTitle"></p>
     <button class="lightbox__nav lightbox__nav--prev" data-lb="-1" aria-label="Forrige bilde" data-cursor="Forrige">←</button>
     <button class="lightbox__nav lightbox__nav--next" data-lb="1" aria-label="Neste bilde" data-cursor="Neste">→</button>
     <p class="lightbox__count" id="lightboxCount">01 / 04</p>

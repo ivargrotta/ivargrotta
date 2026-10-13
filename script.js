@@ -627,10 +627,13 @@
     view.classList.add("is-open");
     view.setAttribute("aria-hidden", "false");
     setTimeout(() => view.querySelectorAll(".split").forEach((el) => el.classList.add("is-in")), 300);
+    // films in the grid play silently while the folder is open
+    if (!reduceMotion) view.querySelectorAll(".photo video").forEach((v) => { v.preload = "auto"; v.play().catch(() => {}); });
     if (history.replaceState) history.replaceState(null, "", "#" + name);
   }
   function closeFolder() {
     if (!openFolderEl) return;
+    openFolderEl.querySelectorAll(".photo video").forEach((v) => v.pause());
     openFolderEl.classList.remove("is-open");
     openFolderEl.setAttribute("aria-hidden", "true");
     openFolderEl = null;
@@ -642,13 +645,32 @@
   const lightbox = document.getElementById("lightbox");
   const lbImg = document.getElementById("lightboxImg");
   const lbCount = document.getElementById("lightboxCount");
+  const lbVideo = document.getElementById("lightboxVideo");
+  const lbTitle = document.getElementById("lightboxTitle");
   let lbPhotos = [], lbIndex = 0;
   function showPhoto(i) {
     lbIndex = (i + lbPhotos.length) % lbPhotos.length;
-    const src = lbPhotos[lbIndex].querySelector("img");
-    lbImg.classList.remove("is-ready");
+    const item = lbPhotos[lbIndex];
     const pad = (n) => String(n).padStart(2, "0");
     lbCount.textContent = `${pad(lbIndex + 1)} / ${pad(lbPhotos.length)}`;
+    lbTitle.textContent = item.dataset.title || "";
+    lbImg.classList.remove("is-ready");
+    lbVideo.classList.remove("is-ready");
+    lbVideo.pause();
+    if (item.dataset.type === "video") {
+      lbImg.hidden = true;
+      lbVideo.hidden = false;
+      // reuse the grid film's sources (mp4 first, webm as fallback)
+      lbVideo.innerHTML = item.querySelector("video").innerHTML;
+      lbVideo.load();
+      lbVideo.muted = false;
+      lbVideo.play().catch(() => { lbVideo.muted = true; lbVideo.play().catch(() => {}); });
+      requestAnimationFrame(() => lbVideo.classList.add("is-ready"));
+      return;
+    }
+    lbVideo.hidden = true;
+    lbImg.hidden = false;
+    const src = item.querySelector("img");
     const img = new Image();
     img.onload = () => { lbImg.src = src.src; lbImg.alt = src.alt; requestAnimationFrame(() => lbImg.classList.add("is-ready")); };
     img.src = src.src;
@@ -660,6 +682,7 @@
     showPhoto(lbPhotos.indexOf(photo));
   }
   function closeLightbox() {
+    lbVideo.pause();
     lightbox.classList.remove("is-open");
     lightbox.setAttribute("aria-hidden", "true");
   }
