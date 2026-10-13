@@ -62,8 +62,27 @@
       document.querySelectorAll(".hero .split, .hero .reveal-up").forEach((el) => el.classList.add("is-in"));
     }, 400);
     setTimeout(() => loader.remove(), 1400);
+    setTimeout(typeCoords, reduceMotion ? 0 : 1500);
     const deep = location.hash.slice(1);
     if (deep === "arbeid" || deep === "kontakt") setTimeout(() => openPanel(deep), 2600);
+  }
+
+  /* ---------------- Oslo coordinates: typewriter ---------------- */
+  function typeCoords() {
+    const el = document.getElementById("coords");
+    if (!el) return;
+    const text = el.dataset.text;
+    if (reduceMotion) { el.textContent = text; return; }
+    let i = 0;
+    el.classList.add("is-typing");
+    (function next() {
+      el.textContent = text.slice(0, ++i);
+      if (i >= text.length) { el.classList.remove("is-typing"); return; }
+      const ch = text[i - 1];
+      // a human rhythm: quick digits, a beat after symbols and spaces
+      const delay = ch === " " ? 220 : /[°′″NE]/.test(ch) ? 140 : 55 + Math.random() * 70;
+      setTimeout(next, delay);
+    })();
   }
 
   /* ---------------- Custom cursor ---------------- */

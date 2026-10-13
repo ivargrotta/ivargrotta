@@ -22,6 +22,7 @@
   --pad: clamp(1rem, 4vw, 3rem);
   --font: "Inter", system-ui, -apple-system, sans-serif;
   --display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -258,7 +259,19 @@ body.panel-open .nav__close { width: 40px; opacity: 1; margin-left: 0; }
 }
 .hero__bottom > * { pointer-events: auto; }
 .hero__clock { display: grid; gap: .25rem; text-align: right; font-size: .9rem; font-variant-numeric: tabular-nums; }
-.hero__lead { max-width: 30ch; font-size: clamp(1.05rem, 1.8vw, 1.5rem); line-height: 1.35; font-weight: 300; }
+/* Oslo coordinates, typed in like a terminal */
+.hero__coords { display: grid; gap: .25rem; }
+.type {
+  font-family: var(--mono); font-size: clamp(.95rem, 1.5vw, 1.2rem); letter-spacing: .02em;
+  white-space: pre; font-variant-numeric: tabular-nums; min-height: 1.4em;
+}
+.hero__clock #clock { font-family: var(--mono); font-size: clamp(.95rem, 1.5vw, 1.2rem); letter-spacing: .02em; min-height: 1.4em; }
+.type::after {
+  content: ""; display: inline-block; width: 2px; height: 1.05em; margin-left: 3px; vertical-align: -.15em;
+  background: var(--dot-b); animation: caret 1s steps(1) infinite;
+}
+.type.is-typing::after { animation: none; }
+@keyframes caret { 50% { opacity: 0; } }
 
 /* split text */
 .split .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
