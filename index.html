@@ -193,6 +193,25 @@
     <button class="clock-close map-close" data-close-panel aria-label="Tilbake til forsiden" data-cursor="Tilbake"><i></i><i></i></button>
   </section>
 
+  <!-- Lock: Arbeid is password protected for now -->
+  <div class="lock" id="lock" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+    <form class="lock__card" id="lockForm" autocomplete="off" novalidate>
+      <p class="eyebrow">Arbeid</p>
+      <h2 class="lock__title" id="lockTitle">Låst<span class="tdot"></span></h2>
+      <p class="lock__text">Skriv inn passordet for å se arbeidene.</p>
+      <label class="lock__field" for="lockInput">
+        <span class="sr-only">Passord</span>
+        <input id="lockInput" name="lockInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off" enterkeyhint="go">
+        <span class="lock__slots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </label>
+      <p class="lock__msg" id="lockMsg" aria-live="polite"></p>
+      <div class="lock__actions">
+        <button type="button" class="lock__cancel hover-line" data-lock-cancel>Avbryt</button>
+        <button type="submit" class="pill lock__submit"><span class="pill__fill"></span><span class="pill__label">Lås opp</span></button>
+      </div>
+    </form>
+  </div>
+
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Bildevisning">
     <img class="lightbox__img" id="lightboxImg" alt="">

@@ -65,7 +65,7 @@
     setTimeout(typeCoords, reduceMotion ? 0 : 1500);
     const deep = location.hash.slice(1);
     if (deep === "arbeid" || deep === "kontakt" || deep === "tid" || deep === "kart") setTimeout(() => openPanel(deep), 2600);
-    if (document.getElementById("folder-" + deep)) setTimeout(() => { openPanel("arbeid"); setTimeout(() => openFolder(deep), 700); }, 2600);
+    if (document.getElementById("folder-" + deep)) setTimeout(() => lock.ask(() => { openPanel("arbeid"); setTimeout(() => openFolder(deep), 700); }), 2600);
   }
 
   /* ---------------- Oslo coordinates: typewriter ---------------- */
@@ -424,6 +424,77 @@
     roomObservers.set(panel, io);
   }
 
+  /* ---------------- Lock for Arbeid ---------------- */
+  // A soft lock: it keeps casual visitors out of Arbeid, nothing more. The page is static,
+  // so the check runs in the browser; only a hash of the code is kept in the source.
+  const lock = (() => {
+    const CODE_HASH = 0x46294705;   // FNV-1a of the code
+    const el = document.getElementById("lock");
+    const form = document.getElementById("lockForm");
+    const card = form;
+    const input = document.getElementById("lockInput");
+    const slots = [...el.querySelectorAll(".lock__slots i")];
+    const msg = document.getElementById("lockMsg");
+    let unlocked = false, pending = null;
+    try { unlocked = sessionStorage.getItem("ivar-arbeid") === "1"; } catch (e) { /* storage blocked */ }
+
+    const fnv = (str) => {
+      let h = 0x811c9dc5;
+      for (const ch of new TextEncoder().encode(str)) { h ^= ch; h = Math.imul(h, 0x01000193) >>> 0; }
+      return h >>> 0;
+    };
+    function paint() { slots.forEach((s, i) => s.classList.toggle("is-on", i < input.value.length)); }
+    function show() {
+      input.value = ""; paint(); msg.textContent = "";
+      card.classList.remove("is-wrong", "is-right");
+      el.classList.add("is-open");
+      el.setAttribute("aria-hidden", "false");
+      setTimeout(() => input.focus(), 120);
+    }
+    function hide() {
+      el.classList.remove("is-open");
+      el.setAttribute("aria-hidden", "true");
+      input.blur();
+    }
+    function submit() {
+      if (input.value.length < 4) { msg.textContent = "Passordet har fire tegn."; input.focus(); return; }
+      if (fnv(input.value) === CODE_HASH) {
+        unlocked = true;
+        try { sessionStorage.setItem("ivar-arbeid", "1"); } catch (e) { /* storage blocked */ }
+        card.classList.add("is-right");
+        msg.textContent = "";
+        const next = pending; pending = null;
+        setTimeout(() => { hide(); if (next) next(); }, 450);
+      } else {
+        card.classList.remove("is-wrong"); void card.offsetWidth;
+        card.classList.add("is-wrong");
+        msg.textContent = "Feil passord. Prøv igjen.";
+        setTimeout(() => { input.value = ""; paint(); card.classList.remove("is-wrong"); input.focus(); }, 650);
+      }
+    }
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/\s/g, "").slice(0, 4);
+      paint();
+      msg.textContent = "";
+      if (input.value.length === 4) submit();
+    });
+    form.addEventListener("submit", (e) => { e.preventDefault(); submit(); });
+    el.querySelector("[data-lock-cancel]").addEventListener("click", () => cancel());
+    el.addEventListener("click", (e) => { if (e.target === el) cancel(); });
+    function cancel() { pending = null; hide(); }
+
+    return {
+      isOpen: () => unlocked,
+      isAsking: () => el.classList.contains("is-open"),
+      ask(then) {
+        if (unlocked) return then();
+        pending = then;
+        show();
+      },
+      cancel,
+    };
+  })();
+
   /* ---------------- Rooms: Arbeid & Kontakt ---------------- */
   const panels = { arbeid: document.getElementById("arbeid"), kontakt: document.getElementById("kontakt"), tid: document.getElementById("tid"), kart: document.getElementById("kart") };
   const navLinks = [...document.querySelectorAll(".nav__link")];
@@ -432,6 +503,7 @@
   function openPanel(name, origin) {
     const panel = panels[name];
     if (!panel || openRoom === name) return;
+    if (name === "arbeid" && !lock.isOpen()) return lock.ask(() => openPanel(name, origin));
     if (openRoom) closePanel(true);
     if (origin && (name === "kontakt" || name === "tid" || name === "kart")) {
       const r = origin.getBoundingClientRect();
@@ -574,8 +646,9 @@
     touchX = null;
   });
 
-  // Esc steps back one layer at a time: photo → folder → room
+  // Esc steps back one layer at a time: lock → photo → folder → room
   addEventListener("keydown", (e) => {
+    if (lock.isAsking()) { if (e.key === "Escape") lock.cancel(); return; }
     if (lbOpen()) {
       if (e.key === "Escape") closeLightbox();
       else if (e.key === "ArrowRight") showPhoto(lbIndex + 1);
